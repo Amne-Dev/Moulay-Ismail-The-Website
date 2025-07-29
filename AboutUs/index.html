@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Moulay Ismail High School</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" defer></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="Desktop-lg">
+            <button class="btn btn-outline-primary me-2 d-md-none">Homepage</button>
+            <a class="btn btn-outline-secondary d-md-none" href="/AboutUs/">About us</a>
+            <div class="dropdown language-switch mt-3">
+                <button class="btn btn-secondary dropdown-toggle languageDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    En
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                    <li><a class="dropdown-item" href="#" id="switch-to-arabic">عربي</a></li>
+                    <li><a class="dropdown-item" href="#" id="switch-to-english">English</a></li>
+                </ul>
+            </div>
+        </div>
+        <button onclick="window.history.back();" class="btn btn-secondary">Go Back</button>
+        <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">Student's Project Work</a></button>
+        <button><a href="/MyIsmail-Web/Lessons/" class="list-group-item list-group-item-action">Teacher's Lessons</a></button>
+        <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">School Activities</a></button>
+        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Connecting Classrooms</a></button>
+        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Sharing Experiences</a></button>
+    </div>
+
+    <!-- Arabic Sidebar -->
+    <div class="sidebar" id="sidebar-arabic" style="display: none;">
+        <div class="Desktop-lg">
+            <button class="btn btn-outline-primary me-2 d-md-none">الرئيسية</button>
+            <button class="btn btn-outline-secondary d-md-none">من نحن</button>
+            <div class="dropdown language-switch mt-3">
+                <button class="btn btn-secondary dropdown-toggle languageDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    En
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                    <li><a class="dropdown-item" href="#" id="switch-to-arabic-ar">عربي</a></li>
+                    <li><a class="dropdown-item" href="#" id="switch-to-english-ar">English</a></li>
+                </ul>
+            </div>
+        </div>
+        <button onclick="goBack()" class="btn btn-secondary">العودة</button>
+        <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">مشاريع الطلاب</a></button>
+        <button><a href="/MyIsmail-Web/Lessons" class="list-group-item list-group-item-action">دروس الأساتدة</a></button>
+        <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">الأنشطة المدرسية</a></button>
+        <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">ربط الفصول الدراسية</a></button>
+        <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">مشاركة التجارب</a></button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mt-5" style="width: auto; padding-right: 30vh;">
+        <h1 class="text-center mb-4">About Us</h1>
+        <div class="overview">
+            <h2>Info</h2>
+            <p>This website is the work of Boumazoued Amine a student from Moulay Ismail High Shcool as an attempt to create an online platform where Students from arround the world can learn and progress thanks to the Ressources present on this webpage.</p>
+        </div>
+        <div class="contact-info mt-5">
+            <h2>Contact Information</h2>
+            <p><strong>Email:</strong> amdev@null.net</p>
+            <p><strong>In collaboration with teacher Mohamed Fettah:</strong> mohamed-fettah@hotmail.fr</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('switch-to-arabic').addEventListener('click', function() {
+            document.documentElement.lang = 'ar';
+            document.querySelector('.overview h2').innerText = 'هدف الموقع';
+            document.querySelector('.overview p').innerText = 'هذا الموقع هو عمل بومزواد أمين، طالب من ثانوية مولاي إسماعيل، في محاولة لإنشاء منصة إلكترونية تمكن للطلاب من جميع أنحاء العالم التعلم عن طريق الموارد المتوفرة على هذا الموقع.';
+            document.querySelector('.contact-info h2').innerText = 'معلومات الاتصال';
+            document.querySelector('.contact-info p:nth-of-type(1)').innerHTML = '<strong>البريد الإلكتروني:</strong> amdev@null.net';
+            document.querySelector('.contact-info p:nth-of-type(2)').innerHTML = '<strong>بشراكة مع المعلم محمد فتاح:</strong> mohamed-fettah@hotmail.fr';
+            document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'Ar');
+            document.getElementById('sidebar').style.display = 'none';
+            document.getElementById('sidebar-arabic').style.display = 'flex';
+        });
+
+        document.getElementById('switch-to-english').addEventListener('click', function() {
+            document.documentElement.lang = 'en';
+            document.querySelector('.overview h2').innerText = 'Info';
+            document.querySelector('.overview p').innerText = 'This website is the work of Boumazoued Amine a student from Moulay Ismail High Shcool as an attempt to create an online platform where Students from arround the world can learn and progress thanks to the Ressources present on this webpage.';
+            document.querySelector('.contact-info h2').innerText = 'Contact Information';
+            document.querySelector('.contact-info p:nth-of-type(1)').innerHTML = '<strong>Email:</strong> amdev@null.net';
+            document.querySelector('.contact-info p:nth-of-type(2)').innerHTML = '<strong>In collaboration with teacher Mohamed Fettah:</strong> mohamed-fettah@hotmail.fr';
+            document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'En');
+            document.getElementById('sidebar').style.display = 'flex';
+            document.getElementById('sidebar-arabic').style.display = 'none';
+        });
+
+        document.getElementById('switch-to-arabic-ar').addEventListener('click', function() {
+            document.getElementById('switch-to-arabic').click();
+        });
+
+        document.getElementById('switch-to-english-ar').addEventListener('click', function() {
+            document.getElementById('switch-to-english').click();
+        });
+    </script>
+</body>
+</html>

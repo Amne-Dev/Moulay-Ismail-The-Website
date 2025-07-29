@@ -1,0 +1,179 @@
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+:root {
+    --bg-main: #fff4e6;
+    --bg-sec: #2F3645;
+    --text-main: #2F3645;
+    --text-sec: #E6B9A6;
+    --misc: #854442;
+    --misc-sec: #a82621;
+}
+
+/* Sidebar Styling */
+.sidebar {
+    background-color: var(--bg-sec);
+    width: 30vh;
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2vh 0;
+    border-left: 1px solid var (--text-sec);
+}
+
+.sidebar button {
+    background-color: var(--misc);
+    color: #ffffff;
+    border: none;
+    padding: 2vh 4vh;
+    margin: 1.5vh 0;
+    font-size: 2vh;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 75%;
+    transition: background-color 0.3s ease;
+}
+
+.sidebar button:hover {
+    background-color: var(--misc-sec);
+}
+
+.language-switch {
+    z-index: 10;
+    margin-bottom: 2vh;
+}
+
+.language-switch button {
+    margin: 0;
+}
+
+.language-switch .dropdown-menu {
+    background-color: var(--misc);
+    border: none;
+}
+
+.language-switch .dropdown-item {
+    color: #ffffff;
+}
+
+.language-switch .dropdown-item:hover {
+    background-color: var(--misc-sec);
+}
+
+/* Selection Buttons */
+#subject-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+}
+
+#subject-buttons button, #lesson-buttons button {
+    color: #ffffff;
+    font-weight: bold;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    background-color: var(--misc);
+    border: none;
+    height: 5vh;
+    font-size: 1.5rem;
+}
+
+#subject-buttons button:hover, #lesson-buttons button:hover {
+    background-color: var(--misc-sec);
+    transform: scale(1.02);
+}
+
+/* Cards Styling */
+#cards-container .list-group-item {
+    background-color: var(--bg-sec);
+    color: var(--text-sec);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#cards-container .list-group-item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+#cards-container h5 {
+    color: var(--text-main);
+}
+
+#cards-container p {
+    color: var(--text-sec);
+}
+
+#cards-container a {
+    color: #ffffff;
+    background-color: var(--misc);
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+#cards-container a:hover {
+    background-color: var(--misc-sec);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        top: 0;
+        right: 0;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items: center;
+        padding: 1vh 0;
+    }
+
+    .sidebar button {
+        font-size: 1.5vh;
+        padding: 1vh 2vh;
+        width: auto;
+    }
+
+    #subject-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #subject-buttons button, #lesson-buttons button {
+        font-size: 1.5rem;
+    }
+
+    #cards-container img {
+        width: 15vh;
+    }
+}
+
+@media (max-width: 480px) {
+    #subject-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    #subject-buttons button, #lesson-buttons button {
+        font-size: 1.2rem;
+    }
+
+    #cards-container img {
+        width: 12vh;
+    }
+}

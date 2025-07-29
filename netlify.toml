@@ -1,0 +1,57 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+  command = "npm run build"
+
+[dev]
+  functions = "netlify/functions"
+  port = 8888
+
+# API redirects
+[[redirects]]
+  from = "/api/auth/*"
+  to = "/.netlify/functions/auth/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/content/*"
+  to = "/.netlify/functions/content/:splat"
+  status = 200
+
+# Admin routes
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/dashboard"
+  to = "/admin-dashboard.html"
+  status = 200
+
+# SPA fallback for existing routes
+[[redirects]]
+  from = "/MyIsmail-Web/Projects"
+  to = "/Projects/"
+  status = 301
+
+[[redirects]]
+  from = "/MyIsmail-Web/Lessons/*"
+  to = "/Lessons/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/MyIsmail-Web/Activities"
+  to = "/Activities/"
+  status = 301
+
+[[redirects]]
+  from = "/MyIsmail-Web/Soon/*"
+  to = "/Soon/:splat"
+  status = 301
+
+[functions]
+  node_bundler = "esbuild"
+
+[context.production.environment]
+  NODE_ENV = "production"

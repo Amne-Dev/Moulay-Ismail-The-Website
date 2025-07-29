@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage - Moulay Ismail High School</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" defer></script>
+</head>
+<body>
+    <!-- Hamburger Menu Button -->
+    <button class="hamburger-menu" id="hamburgerMenu" title="Menu">
+        <span class="hamburger-icon"></span>
+        <span class="hamburger-icon"></span>
+        <span class="hamburger-icon"></span>
+    </button>
+
+    <div class="container-fluid" id="english-version">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9 offset-md-0">
+                <div class="d-flex justify-content-between align-items-center p-3">
+                    <div class="d-none d-md-block">
+                        <button class="btn btn-outline-primary me-2">Homepage</button>
+                        <a class="btn btn-outline-secondary" href="/AboutUs/">About us</a>
+                    </div>
+                </div>
+
+                <div class="text-center mt-5 logo">
+                    <img src="https://raw.githubusercontent.com/Amne-Dev/MyIsmail-Web/refs/heads/main/Images/299214068_488961346562688_7481375062274533520_n__1_-removebg-preview.png" alt="Logo" class="mb-3">
+                    <p>Moulay Ismail High School</p>
+                    <h1>Online Community of Teachers and Students</h1>
+                </div>
+
+                <!-- Slideshow -->
+                <div id="slideshow" class="carousel slide mt-5" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <a href="https://example.com/slide1" target="_blank">
+                                <img src="https://placehold.co/1200x800" class="d-block w-100" alt="Slide 1">
+                            </a>
+                            <div class="carousel-caption d-none d-md-block">
+                                <h5>Welcome to our Community</h5>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://example.com/slide2" target="_blank">
+                                <img src="https://placehold.co/1200x800" class="d-block w-100" alt="Slide 2">
+                            </a>
+                            <div class="carousel-caption d-none d-md-block">
+                                <h5>Engage with Teachers and Students</h5>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://example.com/slide3" target="_blank">
+                                <img src="https://placehold.co/1200x800" class="d-block w-100" alt="Slide 3">
+                            </a>
+                            <div class="carousel-caption d-none d-md-block">
+                                <h5>Collaborate and Learn Together</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#slideshow" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#slideshow" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    <div class="carousel-indicators">
+                        <button type="button" data-bs-target="#slideshow" data-bs-slide-to="0" class="active" aria-current="true" title="Slide 1"></button>
+                        <button type="button" data-bs-target="#slideshow" data-bs-slide-to="1" title="Slide 2"></button>
+                        <button type="button" data-bs-target="#slideshow" data-bs-slide-to="2" title="Slide 3"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="Desktop-lg">
+            <button class="btn btn-outline-primary me-2 d-md-none">Homepage</button>
+            <a class="btn btn-outline-secondary d-md-none" href="/AboutUs/">About us</a>
+            <div class="dropdown language-switch mt-3">
+              <button class="btn btn-secondary dropdown-toggle languageDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  En
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                  <li><a class="dropdown-item" href="#" id="switch-to-arabic">عربي</a></li>
+                  <li><a class="dropdown-item" href="#" id="switch-to-english">English</a></li>
+              </ul>
+          </div>
+        </div>
+
+        <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">Student's Project Work</a></button>
+        <button><a href="/MyIsmail-Web/Lessons/" class="list-group-item list-group-item-action">Teacher's Lessons</a></button>
+        <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">School Activities</a></button>
+        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Connecting Classrooms</a></button>
+        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Sharing Experiences</a></button>
+    </div>
+
+    <div class="container-fluid" id="arabic-version" style="display: none;">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-md-9 offset-md-0">
+                <div class="d-flex justify-content-between align-items-center p-3">
+                    <div class="d-none d-md-block">
+                        <button class="btn btn-outline-primary me-2">الرئيسية</button>
+                        <button class="btn btn-outline-secondary">من نحن</button>
+                    </div>
+                </div>
+
+                <div class="text-center mt-5 logo">
+                    <img src="https://raw.githubusercontent.com/Amne-Dev/MyIsmail-Web/refs/heads/main/Images/299214068_488961346562688_7481375062274533520_n__1_-removebg-preview.png" alt="Logo" class="mb-3">
+                    <p>ثانوية مولاي إسماعيل</p>
+                    <h1>مجتمع تعليمي للمعلمين والطلاب عبر الإنترنت</h1>
+                </div>
+
+                <!-- Slideshow -->
+                <div id="slideshow-arabic" class="carousel slide mt-5" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <a href="https://example.com/slide1" target="_blank">
+                                <img src="https://placehold.co/1200x500" class="d-block w-100" alt="شريحة 1">
+                            </a>
+                            <div class="carousel-caption d-none d-md-block">
+                                <h5>مرحبًا بكم في مجتمعنا</h5>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://example.com/slide2" target="_blank">
+                                <img src="https://placehold.co/1200x800" class="d-block w-100" alt="شريحة 2">
+                            </a>
+                            <div class="carousel-caption d-none د-md-block">
+                                <h5>تفاعل مع المعلمين والطلاب</h5>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <a href="https://example.com/slide3" target="_blank">
+                                <img src="https://placehold.co/1200x800" class="d-block w-100" alt="شريحة 3">
+                            </a>
+                            <div class="carousel-caption د-none د-md-block">
+                                <h5>تعاون وتعلم معًا</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#slideshow-arabic" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#slideshow-arabic" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    <div class="carousel-indicators">
+                        <button type="button" data-bs-target="#slideshow-arabic" data-bs-slide-to="0" class="active" aria-current="true" title="شريحة 1"></button>
+                        <button type="button" data-bs-target="#slideshow-arabic" data-bs-slide-to="1" title="شريحة 2"></button>
+                        <button type="button" data-bs-target="#slideshow-arabic" data-bs-slide-to="2" title="شريحة 3"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar" id="sidebar-arabic">
+                <div class="Desktop-lg">
+                    <button class="btn btn-outline-primary me-2 d-md-none">الرئيسية</button>
+                    <button class="btn btn-outline-secondary d-md-none">من نحن</button>
+
+                    <div class="dropdown language-switch mt-3">
+                      <button class="btn btn-secondary dropdown-toggle languageDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                          En
+                      </button>
+                      <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                          <li><a class="dropdown-item" href="#" id="switch-to-arabic-ar">عربي</a></li>
+                          <li><a class="dropdown-item" href="#" id="switch-to-english-ar">English</a></li>
+                      </ul>
+                  </div>
+
+                </div>
+                <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">مشاريع الطلاب</a></button>
+                <button><a href="/MyIsmail-Web/Lessons" class="list-group-item list-group-item-action">دروس الأساتدة</a></button>
+                <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">الأنشطة المدرسية</a></button>
+                <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">ربط الفصول الدراسية</a></button>
+                <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">مشاركة التجارب</a></button>      
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('[id^="switch-to-arabic"]').forEach(element => {
+            element.addEventListener('click', function() {
+                document.getElementById('english-version').style.display = 'none';
+                document.getElementById('arabic-version').style.display = 'block';
+                document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'Ar');
+            });
+        });
+
+        document.querySelectorAll('[id^="switch-to-english"]').forEach(element => {
+            element.addEventListener('click', function() {
+                document.getElementById('arabic-version').style.display = 'none';
+                document.getElementById('english-version').style.display = 'block';
+                document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'En');
+            });
+        });
+
+        document.getElementById('hamburgerMenu').addEventListener('click', function() {
+            var sidebar = document.getElementById('sidebar');
+            var sidebarArabic = document.getElementById('sidebar-arabic');
+            var icons = document.querySelectorAll('.hamburger-icon');
+            if (sidebar) {
+                sidebar.classList.toggle('active');
+            }
+            if (sidebarArabic) {
+                sidebarArabic.classList.toggle('active');
+            }
+            icons.forEach(icon => {
+                icon.classList.toggle('cross');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student's Project Work</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="projects.js" defer></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="Desktop-lg">
+            <button class="btn btn-outline-primary me-2 d-md-none">Homepage</button>
+            <button class="btn btn-outline-secondary d-md-none">About Us</button>
+            <div class="dropdown language-switch mt-3">
+                <button class="btn btn-secondary dropdown-toggle languageDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    En
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                    <li><a class="dropdown-item" href="#" id="switch-to-arabic">عربي</a></li>
+                    <li><a class="dropdown-item" href="#" id="switch-to-english">English</a></li>
+                </ul>
+            </div>
+        </div>
+        <button onclick="goBack()" class="btn btn-secondary">Go Back</button>
+        <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">Student's Project Work</a></button>
+        <button><a href="/MyIsmail-Web/Lessons/" class="list-group-item list-group-item-action">Teacher's Lessons</a></button>
+        <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">School Activities</a></button>
+        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Connecting Classrooms</a></button>
+        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Sharing Experiences</a></button>
+    </div>
+
+    <!-- Arabic Sidebar -->
+    <div class="sidebar" id="sidebar-arabic" style="display: none;">
+        <div class="Desktop-lg">
+            <button class="btn btn-outline-primary me-2 d-md-none">الرئيسية</button>
+            <button class="btn btn-outline-secondary d-md-none">من نحن</button>
+            <div class="dropdown language-switch mt-3">
+                <button class="btn btn-secondary dropdown-toggle languageDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    En
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                    <li><a class="dropdown-item" href="#" id="switch-to-arabic-ar">عربي</a></li>
+                    <li><a class="dropdown-item" href="#" id="switch-to-english-ar">English</a></li>
+                </ul>
+            </div>
+        </div>
+        <button onclick="goBack()" class="btn btn-secondary">العودة</button>
+        <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">مشاريع الطلاب</a></button>
+        <button><a href="/MyIsmail-Web/Lessons" class="list-group-item list-group-item-action">دروس الأساتدة</a></button>
+        <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">الأنشطة المدرسية</a></button>
+        <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">ربط الفصول الدراسية</a></button>
+        <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">مشاركة التجارب</a></button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mt-5" style="width: auto; padding-right: 30vh;">
+        <h1 class="text-center mb-4">Student's Project Work</h1>
+        <div id="selection-buttons" class="d-flex justify-content-center mb-4" style="height: 100vh; align-items: center; gap: 1rem;">
+            <button id="btn-theory" class="btn btn-primary btn-theory" style="flex: 1; height: 50vh; font-size: 2rem;">In Theory</button>
+            <button id="btn-practice" class="btn btn-primary btn-practice" style="flex: 1; height: 50vh; font-size: 2rem;">In Practice</button>
+        </div>
+
+        <!-- Cards Container -->
+        <div id="cards-container" class="list-group" style="display: none;">
+            <!-- Dynamically loaded cards -->
+        </div>
+    </div>
+
+    <script>
+        const selectionButtons = document.getElementById('selection-buttons');
+        const theoryButton = document.getElementById('btn-theory');
+        const practiceButton = document.getElementById('btn-practice');
+        const cardsContainer = document.getElementById('cards-container');
+
+        theoryButton.addEventListener('click', () => loadProjects('theory'));
+        practiceButton.addEventListener('click', () => loadProjects('practice'));
+
+        document.getElementById('switch-to-arabic').addEventListener('click', function() {
+            document.documentElement.lang = 'ar';
+            theoryButton.innerText = 'في النظرية';
+            practiceButton.innerText = 'في الممارسة';
+            document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'Ar');
+            document.getElementById('sidebar').style.display = 'none';
+            document.getElementById('sidebar-arabic').style.display = 'flex';
+        });
+
+        document.getElementById('switch-to-english').addEventListener('click', function() {
+            document.documentElement.lang = 'en';
+            theoryButton.innerText = 'In Theory';
+            practiceButton.innerText = 'In Practice';
+            document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'En');
+            document.getElementById('sidebar').style.display = 'flex';
+            document.getElementById('sidebar-arabic').style.display = 'none';
+        });
+
+        document.getElementById('switch-to-arabic-ar').addEventListener('click', function() {
+            document.getElementById('switch-to-arabic').click();
+        });
+
+        document.getElementById('switch-to-english-ar').addEventListener('click', function() {
+            document.getElementById('switch-to-english').click();
+        });
+
+        function loadProjects(type) {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+
+            const lang = document.documentElement.lang;
+            const projectsData = lang === 'ar' ? projectsAr : projects;
+            projectsData[type].forEach(project => {
+                const card = document.createElement('div');
+                card.className = 'list-group-item';
+                card.style = 'background-color: var(--bg-sec); color: var(--text-sec); margin-bottom: 1rem; border-radius: 10px; padding: 1.5rem;';
+                card.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <img src="${project.image}" alt="Student Image" class="me-3" style="width: 10vh; height: auto; border-radius: 10px;">
+                        <div>
+                            <h5 style="color: #fff;">${project.title}</h5>
+                            <a href="${project.link}" target="_blank" style="color: var(--misc-sec);">View Project</a>
+                            <p class="mb-0" style="color: var(--misc);">${project.name}</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            practiceButton.style.display = 'none';
+            theoryButton.style.display = 'none';
+            selectionButtons.style.height = 0;
+            cardsContainer.style.display = 'block';
+        }
+
+        function goBack() {
+            if (cardsContainer.style.display === 'block') {
+                cardsContainer.style.display = 'none';
+                practiceButton.style.display = 'block';
+                theoryButton.style.display = 'block';
+                selectionButtons.style.height = '100vh';
+            } else {
+                window.history.back();
+            }
+        }
+    </script>
+</body>
+</html>
