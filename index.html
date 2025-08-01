@@ -27,15 +27,17 @@
                     </div>
                 </div>
 
-                <div class="text-center mt-5 logo">
+                <!-- Hero Section -->
+                <div class="text-center mt-5 logo" id="hero-section">
                     <img src="https://raw.githubusercontent.com/Amne-Dev/MyIsmail-Web/refs/heads/main/Images/299214068_488961346562688_7481375062274533520_n__1_-removebg-preview.png" alt="Logo" class="mb-3">
-                    <p>Moulay Ismail High School</p>
-                    <h1>Online Community of Teachers and Students</h1>
+                    <p id="hero-subtitle">Moulay Ismail High School</p>
+                    <h1 id="hero-title">Online Community of Teachers and Students</h1>
                 </div>
 
                 <!-- Slideshow -->
                 <div id="slideshow" class="carousel slide mt-5" data-bs-ride="carousel">
-                    <div class="carousel-inner">
+                    <div class="carousel-inner" id="slideshow-content">
+                        <!-- Default slides - will be replaced by dynamic content -->
                         <div class="carousel-item active">
                             <a href="https://example.com/slide1" target="_blank">
                                 <img src="https://placehold.co/1200x800" class="d-block w-100" alt="Slide 1">
@@ -69,7 +71,7 @@
                         <span class="carousel-control-next-icon" aria-hidden="true"></span>
                         <span class="visually-hidden">Next</span>
                     </button>
-                    <div class="carousel-indicators">
+                    <div class="carousel-indicators" id="slideshow-indicators">
                         <button type="button" data-bs-target="#slideshow" data-bs-slide-to="0" class="active" aria-current="true" title="Slide 1"></button>
                         <button type="button" data-bs-target="#slideshow" data-bs-slide-to="1" title="Slide 2"></button>
                         <button type="button" data-bs-target="#slideshow" data-bs-slide-to="2" title="Slide 3"></button>
@@ -113,15 +115,17 @@
                     </div>
                 </div>
 
-                <div class="text-center mt-5 logo">
+                <!-- Hero Section Arabic -->
+                <div class="text-center mt-5 logo" id="hero-section-arabic">
                     <img src="https://raw.githubusercontent.com/Amne-Dev/MyIsmail-Web/refs/heads/main/Images/299214068_488961346562688_7481375062274533520_n__1_-removebg-preview.png" alt="Logo" class="mb-3">
-                    <p>ثانوية مولاي إسماعيل</p>
-                    <h1>مجتمع تعليمي للمعلمين والطلاب عبر الإنترنت</h1>
+                    <p id="hero-subtitle-arabic">ثانوية مولاي إسماعيل</p>
+                    <h1 id="hero-title-arabic">مجتمع تعليمي للمعلمين والطلاب عبر الإنترنت</h1>
                 </div>
 
-                <!-- Slideshow -->
+                <!-- Slideshow Arabic -->
                 <div id="slideshow-arabic" class="carousel slide mt-5" data-bs-ride="carousel">
-                    <div class="carousel-inner">
+                    <div class="carousel-inner" id="slideshow-content-arabic">
+                        <!-- Default slides - will be replaced by dynamic content -->
                         <div class="carousel-item active">
                             <a href="https://example.com/slide1" target="_blank">
                                 <img src="https://placehold.co/1200x500" class="d-block w-100" alt="شريحة 1">
@@ -155,7 +159,7 @@
                         <span class="carousel-control-next-icon" aria-hidden="true"></span>
                         <span class="visually-hidden">Next</span>
                     </button>
-                    <div class="carousel-indicators">
+                    <div class="carousel-indicators" id="slideshow-indicators-arabic">
                         <button type="button" data-bs-target="#slideshow-arabic" data-bs-slide-to="0" class="active" aria-current="true" title="شريحة 1"></button>
                         <button type="button" data-bs-target="#slideshow-arabic" data-bs-slide-to="1" title="شريحة 2"></button>
                         <button type="button" data-bs-target="#slideshow-arabic" data-bs-slide-to="2" title="شريحة 3"></button>
@@ -163,7 +167,7 @@
                 </div>
             </div>
 
-            <!-- Sidebar -->
+            <!-- Sidebar Arabic -->
             <div class="sidebar" id="sidebar-arabic">
                 <div class="Desktop-lg">
                     <button class="btn btn-outline-primary me-2 d-md-none">الرئيسية</button>
@@ -190,6 +194,7 @@
         </div>
     </div>
 
+    <script src="Script/main.js"></script>
     <script>
         document.querySelectorAll('[id^="switch-to-arabic"]').forEach(element => {
             element.addEventListener('click', function() {
