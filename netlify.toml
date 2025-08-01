@@ -12,11 +12,13 @@
   from = "/api/auth/*"
   to = "/.netlify/functions/auth/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/content/*"
   to = "/.netlify/functions/content/:splat"
   status = 200
+  force = true
 
 # Admin routes
 [[redirects]]
@@ -29,7 +31,7 @@
   to = "/admin-dashboard.html"
   status = 200
 
-# SPA fallback for existing routes
+# Legacy project routes (redirects)
 [[redirects]]
   from = "/MyIsmail-Web/Projects"
   to = "/Projects/"
@@ -50,8 +52,16 @@
   to = "/Soon/:splat"
   status = 301
 
-[functions]
-  node_bundler = "esbuild"
-
+# Environment variables for functions
 [context.production.environment]
   NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "development"
+
+[context.branch-deploy.environment]
+  NODE_ENV = "development"
+
+# Function settings
+[functions]
+  node_bundler = "esbuild"
