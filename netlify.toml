@@ -1,24 +1,36 @@
 [build]
   publish = "."
   functions = "netlify/functions"
-  command = "npm run build"
 
 [dev]
   functions = "netlify/functions"
   port = 8888
 
-# API redirects
+# Simplify API redirects - try direct mapping first
 [[redirects]]
-  from = "/api/auth/*"
-  to = "/.netlify/functions/auth/:splat"
+  from = "/api/auth/login"
+  to = "/.netlify/functions/auth/login"
   status = 200
-  force = true
+
+[[redirects]]
+  from = "/api/auth/logout"
+  to = "/.netlify/functions/auth/logout"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/verify"
+  to = "/.netlify/functions/auth/verify"
+  status = 200
+
+[[redirects]]
+  from = "/api/content"
+  to = "/.netlify/functions/content"
+  status = 200
 
 [[redirects]]
   from = "/api/content/*"
   to = "/.netlify/functions/content/:splat"
   status = 200
-  force = true
 
 # Admin routes
 [[redirects]]
@@ -51,16 +63,6 @@
   from = "/MyIsmail-Web/Soon/*"
   to = "/Soon/:splat"
   status = 301
-
-# Environment variables for functions
-[context.production.environment]
-  NODE_ENV = "production"
-
-[context.deploy-preview.environment]
-  NODE_ENV = "development"
-
-[context.branch-deploy.environment]
-  NODE_ENV = "development"
 
 # Function settings
 [functions]

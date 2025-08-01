@@ -120,11 +120,31 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const path = event.path.replace('/.netlify/functions/auth', '');
+    // Debug logging
+    console.log('Event path:', event.path);
+    console.log('Event method:', event.httpMethod);
+    console.log('Event headers:', event.headers);
+    
+    // Extract the route from the path
+    let path = event.path.replace('/.netlify/functions/auth', '');
+    
+    // Handle both /api/auth/* and direct function calls
+    if (path.startsWith('/api/auth')) {
+      path = path.replace('/api/auth', '');
+    }
+    
+    // Remove leading slash if present
+    if (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+    
     const method = event.httpMethod;
+    
+    console.log('Processed path:', path);
+    console.log('Method:', method);
 
     // Route handling
-    if (path === '/login' && method === 'POST') {
+    if ((path === 'login' || path === '') && method === 'POST') {
       const body = parseBody(event);
       if (!body) {
         return createResponse(400, { message: 'Invalid request body' });
@@ -132,15 +152,23 @@ exports.handler = async (event, context) => {
       return await handleLogin(body);
     }
 
-    if (path === '/logout' && method === 'POST') {
+    if (path === 'logout' && method === 'POST') {
       return handleLogout();
     }
 
-    if (path === '/verify' && method === 'GET') {
+    if (path === 'verify' && method === 'GET') {
       return handleVerify(event);
     }
 
-    return createResponse(404, { message: 'Route not found' });
+    // If we get here, route wasn't found
+    return createResponse(404, { 
+      message: 'Route not found',
+      debug: {
+        originalPath: event.path,
+        processedPath: path,
+        method: method
+      }
+    });
   } catch (error) {
     console.error('Auth function error:', error);
     return createResponse(500, { 

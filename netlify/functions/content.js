@@ -190,22 +190,35 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Debug logging
+    console.log('Event path:', event.path);
+    console.log('Event method:', event.httpMethod);
+    
     let path = event.path.replace('/.netlify/functions/content', '');
-    const method = event.httpMethod;
-    const queryParams = event.queryStringParameters || {};
-
+    
+    // Handle both /api/content/* and direct function calls
+    if (path.startsWith('/api/content')) {
+      path = path.replace('/api/content', '');
+    }
+    
     // Remove leading slash if present
     if (path.startsWith('/')) {
       path = path.substring(1);
     }
+    
+    const method = event.httpMethod;
+    const queryParams = event.queryStringParameters || {};
+    
+    console.log('Processed path:', path);
+    console.log('Method:', method);
 
     // Public routes
-    if (method === 'GET' && path === '') {
+    if (method === 'GET' && (path === '' || path === 'all')) {
       const content = getAllContent(queryParams);
       return createResponse(200, content);
     }
 
-    if (method === 'GET' && path && !path.includes('admin')) {
+    if (method === 'GET' && path && !path.includes('admin') && path !== '') {
       const content = getContentById(path);
       if (!content) {
         return createResponse(404, { message: 'Content not found' });
@@ -226,7 +239,7 @@ exports.handler = async (event, context) => {
       return createResponse(200, content);
     }
 
-    if (method === 'POST' && path === '') {
+    if (method === 'POST' && (path === '' || path === 'create')) {
       const body = parseBody(event);
       if (!body) {
         return createResponse(400, { message: 'Invalid request body' });
@@ -263,7 +276,14 @@ exports.handler = async (event, context) => {
       return createResponse(200, { message: 'Content deleted successfully' });
     }
 
-    return createResponse(404, { message: 'Route not found' });
+    return createResponse(404, { 
+      message: 'Route not found',
+      debug: {
+        originalPath: event.path,
+        processedPath: path,
+        method: method
+      }
+    });
   } catch (error) {
     console.error('Content function error:', error);
     return createResponse(500, { 
