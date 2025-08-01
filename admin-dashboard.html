@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Moulay Ismail High School</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="./styles.css">
     <style>
         body {
             background-color: var(--bg-main);
@@ -331,7 +331,400 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="Script/auth.js"></script>
-    <script src="Script/dashboard.js"></script>
+    
+    <!-- Inline Auth Script -->
+    <script>
+    // Authentication utility functions
+    const Auth = {
+        // API base URL
+        apiUrl: window.location.origin + '/api',
+
+        // Get token from localStorage
+        getToken() {
+            return localStorage.getItem('authToken');
+        },
+
+        // Set token in localStorage
+        setToken(token) {
+            localStorage.setItem('authToken', token);
+        },
+
+        // Remove token from localStorage
+        removeToken() {
+            localStorage.removeItem('authToken');
+        },
+
+        // Check if user is authenticated
+        isAuthenticated() {
+            return !!this.getToken();
+        },
+
+        // Make authenticated API request
+        async request(url, options = {}) {
+            const token = this.getToken();
+            
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                    ...options.headers
+                },
+                ...options
+            };
+
+            try {
+                const response = await fetch(url, config);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Request failed');
+                }
+
+                return data;
+            } catch (error) {
+                console.error('API request failed:', error);
+                throw error;
+            }
+        },
+
+        // Login function
+        async login(username, password) {
+            try {
+                const response = await this.request(`${this.apiUrl}/auth/login`, {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+
+                this.setToken(response.token);
+                return response;
+            } catch (error) {
+                throw error;
+            }
+        },
+
+        // Logout function
+        async logout() {
+            try {
+                await this.request(`${this.apiUrl}/auth/logout`, {
+                    method: 'POST'
+                });
+            } catch (error) {
+                console.error('Logout request failed:', error);
+            } finally {
+                this.removeToken();
+                window.location.href = '/admin';
+            }
+        },
+
+        // Verify token
+        async verifyToken() {
+            try {
+                const response = await this.request(`${this.apiUrl}/auth/verify`);
+                return response;
+            } catch (error) {
+                this.removeToken();
+                throw error;
+            }
+        },
+
+        // Show alert message
+        showAlert(message, type = 'danger', containerId = 'alert-container') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    const alert = container.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+        }
+    };
+
+    // Check authentication on dashboard pages
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            await Auth.verifyToken();
+        } catch (error) {
+            Auth.showAlert('Session expired. Please log in again.');
+            setTimeout(() => {
+                window.location.href = '/admin';
+            }, 2000);
+        }
+    });
+
+    // Logout handler
+    document.addEventListener('DOMContentLoaded', () => {
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (confirm('Are you sure you want to logout?')) {
+                    Auth.logout();
+                }
+            });
+        }
+    });
+    </script>
+
+    <!-- Inline Dashboard Script -->
+    <script>
+    // Dashboard functionality
+    let allContent = [];
+    let currentEditId = null;
+
+    // DOM elements
+    const contentList = document.getElementById('contentList');
+    const emptyState = document.getElementById('emptyState');
+    const contentModal = new bootstrap.Modal(document.getElementById('contentModal'));
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+        loadContent();
+        setupFilters();
+    });
+
+    // Load all content
+    async function loadContent() {
+        try {
+            const response = await Auth.request(`${Auth.apiUrl}/content/admin/all`);
+            allContent = response;
+            updateStats();
+            renderContent(allContent);
+        } catch (error) {
+            console.error('Error loading content:', error);
+            Auth.showAlert('Failed to load content: ' + error.message);
+        }
+    }
+
+    // Update statistics
+    function updateStats() {
+        const total = allContent.length;
+        const active = allContent.filter(item => item.isActive).length;
+        const hero = allContent.filter(item => item.section === 'hero').length;
+        const slideshow = allContent.filter(item => item.section === 'slideshow').length;
+
+        document.getElementById('totalContent').textContent = total;
+        document.getElementById('activeContent').textContent = active;
+        document.getElementById('heroContent').textContent = hero;
+        document.getElementById('slideshowContent').textContent = slideshow;
+    }
+
+    // Render content list
+    function renderContent(content) {
+        if (content.length === 0) {
+            contentList.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        
+        const html = content.map(item => `
+            <div class="content-card">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="section-badge me-2">${item.section.toUpperCase()}</span>
+                            <small class="text-muted">
+                                ${item.language.toUpperCase()} | 
+                                Order: ${item.order} | 
+                                ${item.isActive ? 'Active' : 'Inactive'}
+                            </small>
+                        </div>
+                        <h5 class="mb-1">${escapeHtml(item.title)}</h5>
+                        <p class="mb-1 text-muted">${truncateText(escapeHtml(item.body), 150)}</p>
+                        ${item.imageUrl ? `<small class="text-muted">Image: ${item.imageUrl}</small>` : ''}
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Created: ${formatDate(item.createdAt)} | 
+                                Updated: ${formatDate(item.updatedAt)}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-edit btn-custom btn-sm" onclick="editContent('${item._id}')">
+                            Edit
+                        </button>
+                        <button class="btn btn-delete btn-custom btn-sm" onclick="deleteContent('${item._id}', '${escapeHtml(item.title)}')">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        contentList.innerHTML = html;
+    }
+
+    // Setup filter functionality
+    function setupFilters() {
+        const sectionFilter = document.getElementById('sectionFilter');
+        const languageFilter = document.getElementById('languageFilter');
+        const statusFilter = document.getElementById('statusFilter');
+
+        [sectionFilter, languageFilter, statusFilter].forEach(filter => {
+            filter.addEventListener('change', applyFilters);
+        });
+    }
+
+    // Apply filters
+    function applyFilters() {
+        const sectionFilter = document.getElementById('sectionFilter').value;
+        const languageFilter = document.getElementById('languageFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        let filteredContent = allContent;
+
+        if (sectionFilter) {
+            filteredContent = filteredContent.filter(item => item.section === sectionFilter);
+        }
+
+        if (languageFilter) {
+            filteredContent = filteredContent.filter(item => item.language === languageFilter);
+        }
+
+        if (statusFilter !== '') {
+            const isActive = statusFilter === 'true';
+            filteredContent = filteredContent.filter(item => item.isActive === isActive);
+        }
+
+        renderContent(filteredContent);
+    }
+
+    // Open create modal
+    function openCreateModal() {
+        currentEditId = null;
+        document.getElementById('modalTitle').textContent = 'Add New Content';
+        document.getElementById('contentForm').reset();
+        document.getElementById('contentId').value = '';
+        document.getElementById('isActive').checked = true;
+        document.getElementById('language').value = 'en';
+        document.getElementById('order').value = '0';
+    }
+
+    // Edit content
+    function editContent(id) {
+        const content = allContent.find(item => item._id === id);
+        if (!content) return;
+
+        currentEditId = id;
+        document.getElementById('modalTitle').textContent = 'Edit Content';
+        document.getElementById('contentId').value = content._id;
+        document.getElementById('title').value = content.title;
+        document.getElementById('body').value = content.body;
+        document.getElementById('imageUrl').value = content.imageUrl || '';
+        document.getElementById('section').value = content.section;
+        document.getElementById('language').value = content.language || 'en';
+        document.getElementById('order').value = content.order || 0;
+        document.getElementById('isActive').checked = content.isActive;
+
+        contentModal.show();
+    }
+
+    // Save content (create or update)
+    async function saveContent() {
+        const form = document.getElementById('contentForm');
+        const formData = new FormData(form);
+        const spinner = document.getElementById('saveSpinner');
+        const saveBtn = document.getElementById('saveBtn');
+
+        // Validate required fields
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        // Show loading state
+        spinner.classList.remove('d-none');
+        saveBtn.disabled = true;
+
+        const data = {
+            title: formData.get('title'),
+            body: formData.get('body'),
+            imageUrl: formData.get('imageUrl') || '',
+            section: formData.get('section'),
+            language: formData.get('language') || 'en',
+            order: parseInt(formData.get('order')) || 0,
+            isActive: document.getElementById('isActive').checked
+        };
+
+        try {
+            let response;
+            if (currentEditId) {
+                // Update existing content
+                response = await Auth.request(`${Auth.apiUrl}/content/${currentEditId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                Auth.showAlert('Content updated successfully!', 'success');
+            } else {
+                // Create new content
+                response = await Auth.request(`${Auth.apiUrl}/content`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                Auth.showAlert('Content created successfully!', 'success');
+            }
+
+            contentModal.hide();
+            loadContent(); // Reload content list
+        } catch (error) {
+            console.error('Error saving content:', error);
+            Auth.showAlert('Error saving content: ' + error.message);
+        } finally {
+            // Hide loading state
+            spinner.classList.add('d-none');
+            saveBtn.disabled = false;
+        }
+    }
+
+    // Delete content
+    async function deleteContent(id, title) {
+        if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await Auth.request(`${Auth.apiUrl}/content/${id}`, {
+                method: 'DELETE'
+            });
+            
+            Auth.showAlert('Content deleted successfully!', 'success');
+            loadContent(); // Reload content list
+        } catch (error) {
+            console.error('Error deleting content:', error);
+            Auth.showAlert('Error deleting content: ' + error.message);
+        }
+    }
+
+    // Utility functions
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    </script>
 </body>
 </html>
