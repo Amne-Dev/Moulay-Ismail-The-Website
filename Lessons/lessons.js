@@ -63,9 +63,19 @@ document.getElementById('switch-to-english-ar').addEventListener('click', functi
     document.getElementById('switch-to-english').click();
 });
 
-// Updated function to load lessons from API
+// Updated function to load lessons from API with enhanced UI
 async function loadLessonCards(subject) {
+    // Dispatch loading start event
+    window.dispatchEvent(new CustomEvent('lessonLoadStart'));
+    
+    // Show loading state
     cardsContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
+    // Hide other sections
+    const noLessonsMessage = document.getElementById('no-lessons-message');
+    const errorMessage = document.getElementById('error-message');
+    if (noLessonsMessage) noLessonsMessage.style.display = 'none';
+    if (errorMessage) errorMessage.style.display = 'none';
     
     try {
         const lessons = await getLessonsForSubject(subject);
@@ -73,17 +83,24 @@ async function loadLessonCards(subject) {
         cardsContainer.innerHTML = ''; // Clear loading spinner
         
         if (lessons.length === 0) {
-            cardsContainer.innerHTML = `
-                <div class="text-center p-4">
-                    <h5>No lessons found for ${subject}</h5>
-                    <p class="text-muted">Lessons for this subject haven't been added yet.</p>
-                </div>
-            `;
+            // Show no lessons message
+            if (noLessonsMessage) {
+                const noLessonsText = document.getElementById('no-lessons-text');
+                if (noLessonsText) {
+                    noLessonsText.textContent = `No lessons have been added for ${subject} yet.`;
+                }
+                noLessonsMessage.style.display = 'block';
+            }
+            cardsContainer.style.display = 'none';
         } else {
+            // Populate teacher filter
+            populateTeacherFilter(lessons);
+            
+            // Render lesson cards
             lessons.forEach(lesson => {
                 const cardElement = document.createElement('div');
                 cardElement.className = 'list-group-item';
-                cardElement.style = 'background-color: var(--bg-sec); color: var(--text-sec); margin-bottom: 1rem; border-radius: 10px; padding: 1.5rem;';
+                cardElement.style = 'background-color: var(--bg-sec); color: var(--text-sec); margin-bottom: 1rem; border-radius: 10px; padding: 1.5rem; transition: transform 0.2s ease;';
                 
                 // Extract teacher and video link from lesson data
                 const teacher = lesson.metadata?.teacher || extractTeacherFromBody(lesson.body) || 'Unknown Teacher';
@@ -91,33 +108,108 @@ async function loadLessonCards(subject) {
                 
                 cardElement.innerHTML = `
                     <div class="d-flex align-items-center">
-                        <div>
-                            <h5 style="color: #fff;">${escapeHtml(lesson.title)}</h5>
-                            <p style="color: var(--text-sec);">Teacher: ${escapeHtml(teacher)}</p>
-                            ${lesson.body && lesson.body !== `Subject: ${subject}\nTeacher: ${teacher}` ? `<p style="color: var(--text-sec); font-size: 0.9em;">${escapeHtml(lesson.body.substring(0, 100))}${lesson.body.length > 100 ? '...' : ''}</p>` : ''}
+                        <div class="flex-grow-1">
+                            <h5 style="color: #fff; margin-bottom: 0.5rem;">${escapeHtml(lesson.title)}</h5>
+                            <p style="color: var(--text-sec); margin-bottom: 0.25rem;">
+                                <i class="bi bi-person-fill"></i> Teacher: ${escapeHtml(teacher)}
+                            </p>
+                            ${lesson.body && lesson.body !== `Subject: ${subject}\nTeacher: ${teacher}` ? 
+                                `<p style="color: var(--text-sec); font-size: 0.9em; margin-bottom: 0;">${escapeHtml(lesson.body.substring(0, 100))}${lesson.body.length > 100 ? '...' : ''}</p>` : 
+                                ''
+                            }
+                            ${lesson.metadata?.duration ? 
+                                `<small style="color: var(--text-sec);"><i class="bi bi-clock"></i> ${lesson.metadata.duration}</small>` : 
+                                ''
+                            }
                         </div>
-                        ${videoLink !== '#' ? 
-                            `<a href="${escapeHtml(videoLink)}" class="btn btn-primary" style="position: absolute; right: 1rem; border: none;" target="_blank">Watch</a>` :
-                            `<button class="btn btn-secondary" style="position: absolute; right: 1rem; border: none;" disabled>No Video</button>`
-                        }
+                        <div class="ms-3">
+                            ${videoLink !== '#' ? 
+                                `<a href="${escapeHtml(videoLink)}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                                    <i class="bi bi-play-circle"></i> Watch
+                                </a>` :
+                                `<button class="btn btn-secondary" disabled>
+                                    <i class="bi bi-x-circle"></i> No Video
+                                </button>`
+                            }
+                        </div>
                     </div>
                 `;
+                
+                // Add hover effect
+                cardElement.addEventListener('mouseenter', () => {
+                    cardElement.style.transform = 'translateY(-2px)';
+                    cardElement.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                });
+                
+                cardElement.addEventListener('mouseleave', () => {
+                    cardElement.style.transform = 'translateY(0)';
+                    cardElement.style.boxShadow = 'none';
+                });
+                
                 cardsContainer.appendChild(cardElement);
             });
+            
+            cardsContainer.style.display = 'block';
+            
+            // Update lesson count
+            updateLessonCount();
         }
+        
+        // Show search/filter section and back button
+        const searchFilterSection = document.getElementById('search-filter-section');
+        const backButtonSection = document.getElementById('back-button-section');
+        if (searchFilterSection) searchFilterSection.style.display = 'flex';
+        if (backButtonSection) backButtonSection.style.display = 'block';
+        
     } catch (error) {
         console.error('Error loading lessons:', error);
-        cardsContainer.innerHTML = `
-            <div class="alert alert-danger">
-                <h5>Error Loading Lessons</h5>
-                <p>There was an error loading lessons for ${subject}. Please try again later.</p>
-                <button class="btn btn-outline-danger" onclick="loadLessonCards('${subject}')">Retry</button>
-            </div>
-        `;
+        
+        // Show error message
+        if (errorMessage) {
+            const errorText = document.getElementById('error-text');
+            if (errorText) {
+                errorText.textContent = `There was an error loading ${subject} lessons. Please check your internet connection and try again.`;
+            }
+            
+            // Setup retry button
+            const retryBtn = document.getElementById('retry-btn');
+            if (retryBtn) {
+                retryBtn.onclick = () => loadLessonCards(subject);
+            }
+            
+            errorMessage.style.display = 'block';
+        }
+        
+        cardsContainer.style.display = 'none';
     }
 
+    // Hide subject buttons
     subjectButtons.style.display = 'none';
-    cardsContainer.style.display = 'block';
+    
+    // Dispatch loading complete event
+    window.dispatchEvent(new CustomEvent('lessonLoadComplete'));
+}
+
+// Function to populate teacher filter dropdown
+function populateTeacherFilter(lessons) {
+    const teacherFilter = document.getElementById('teacher-filter');
+    if (!teacherFilter) return;
+    
+    // Get unique teachers
+    const teachers = [...new Set(lessons.map(lesson => {
+        return lesson.metadata?.teacher || extractTeacherFromBody(lesson.body) || 'Unknown Teacher';
+    }))].sort();
+    
+    // Clear existing options (except "All Teachers")
+    teacherFilter.innerHTML = '<option value="">All Teachers</option>';
+    
+    // Add teacher options
+    teachers.forEach(teacher => {
+        const option = document.createElement('option');
+        option.value = teacher;
+        option.textContent = teacher;
+        teacherFilter.appendChild(option);
+    });
 }
 
 // Fetch lessons from API with fallback to hardcoded data
@@ -156,13 +248,22 @@ async function getLessonsForSubject(subject) {
                 return a.title.localeCompare(b.title);
             });
             
+            console.log(`✅ Loaded ${filteredLessons.length} lessons for ${subject} from API`);
             return filteredLessons;
         }
     } catch (error) {
         console.warn('API request failed, falling back to hardcoded data:', error);
+        
+        // Dispatch event to show offline indicator
+        window.dispatchEvent(new CustomEvent('usingFallbackData'));
+        window.usingFallbackData = true;
     }
     
     // Fallback to hardcoded data if API fails
+    console.log(`📱 Using fallback data for ${subject}`);
+    window.usingFallbackData = true;
+    window.dispatchEvent(new CustomEvent('usingFallbackData'));
+    
     return getHardcodedLessonsForSubject(subject);
 }
 
