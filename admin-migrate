@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lessons Migration Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 2rem 0;
+        }
+        .migration-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .subject-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .lesson-item {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .btn-migrate {
+            background: linear-gradient(45deg, #854442, #a82621);
+            border: none;
+            color: white;
+        }
+        .btn-migrate:hover {
+            background: linear-gradient(45deg, #a82621, #854442);
+            color: white;
+        }
+        .status-message {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="migration-container">
+        <h1 class="text-center mb-4">Lessons Migration Tool</h1>
+        <p class="text-muted text-center">This tool will migrate your hardcoded lessons to the content management system.</p>
+        
+        <div class="alert alert-info">
+            <strong>What this does:</strong>
+            <ul class="mb-0">
+                <li>Converts hardcoded lessons from lessons.js to database entries</li>
+                <li>Creates content entries with section "lessons"</li>
+                <li>Preserves subject categorization and teacher information</li>
+                <li>Makes lessons manageable through the admin dashboard</li>
+            </ul>
+        </div>
+
+        <div id="lessons-preview">
+            <h3>Lessons to be migrated:</h3>
+            <div id="subjects-container"></div>
+        </div>
+
+        <div class="text-center mt-4">
+            <button id="migrate-btn" class="btn btn-migrate btn-lg">
+                <span id="migrate-spinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                Migrate All Lessons
+            </button>
+        </div>
+
+        <div id="status-container" class="status-message"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Hardcoded lessons data (copy from your lessons.js)
+        const lessonsData = {
+            english: [
+                { title: 'The Future Tense with "will" and "be going to"', cards: [{ title: 'The Future Tense with "will" and "be going to"', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=bOfDvsHddE0&t=9s' }] },
+                { title: 'What and how I learn English', cards: [{ title: 'What and how I learn English', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=sTbrX9yrRA8&t=626s' }] },
+                { title: 'Learning vocabulary (health)', cards: [{ title: 'Learning vocabulary (health)', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=8DFA1lQ8HFM&t=1219s' }] },
+                { title: 'How to tell others about me', cards: [{ title: 'How to tell others about me', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=MChmfeYZMew&t=296s' }] },
+                { title: 'Quantity and quantifiers', cards: [{ title: 'Quantity and quantifiers', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=wsmpvTuGJa8&t=393s' }] },
+                { title: 'Superlative form', cards: [{ title: 'Superlative form', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=WGD0pXtnElU&t=166s' }] },
+                { title: 'My family tree', cards: [{ title: 'My family tree', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=cAzOqyMNwHc&t=312s' }] },
+                { title: 'Using too and enough', cards: [{ title: 'Using too and enough', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=WEx7cx5pljw' }] },
+                { title: 'Comparative form', cards: [{ title: 'Comparative form', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=wZWi5DLi1Mc' }] },
+                { title: 'Expressing purpose', cards: [{ title: 'Expressing purpose', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=16DrNprmkrc&t=31s' }] },
+                { title: 'Adverbs of frequency', cards: [{ title: 'Adverbs of frequency', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=sNEuYYcT61U&t=89s' }] },
+                { title: 'Expressing and seeking advice', cards: [{ title: 'Expressing and seeking advice', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=-3Uz2gae9Os&t=119s' }] },
+                { title: 'Used to and didn\'t use to', cards: [{ title: 'Used to and didn\'t use to', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=D_mfEkPA2s4&t=345s' }] },
+                { title: 'Present perfect', cards: [{ title: 'Present perfect', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=E_NmFgcWdeE&t=41s' }] },
+                { title: 'The past simple', cards: [{ title: 'The past simple', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=VdE-mKLHtpA' }] },
+                { title: 'Pronouns in English', cards: [{ title: 'Pronouns in English', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=ZAtVkfcWWRQ&t=724s' }] },
+                { title: 'The present simple', cards: [{ title: 'The present simple', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=qkXB2HkB8lo&t=931s' }] },
+                { title: 'Expressing wishes', cards: [{ title: 'Expressing wishes', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=prbEP8JVL0c' }] },
+                { title: 'Conditional sentence', cards: [{ title: 'Conditional sentence', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=1xPoZx-jopY&t=1633s' }] },
+                { title: 'The passive voice', cards: [{ title: 'The passive voice', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=PpaUB8rBt-4&t=9s' }] }
+            ],
+            maths: [
+                { title: 'Limits and Continuity', cards: [{ title: 'Limits and Continuity', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Derivation and Study of Functions', cards: [{ title: 'Derivation and Study of Functions', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Mean Value Theorem (MVT)', cards: [{ title: 'Mean Value Theorem (MVT)', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Numerical Sequences', cards: [{ title: 'Numerical Sequences', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Logarithmic Functions', cards: [{ title: 'Logarithmic Functions', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Exponential Functions', cards: [{ title: 'Exponential Functions', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Differential Equations', cards: [{ title: 'Differential Equations', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Complex Numbers (Part 1)', cards: [{ title: 'Complex Numbers (Part 1)', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Primitive Functions and Integral Calculus', cards: [{ title: 'Primitive Functions and Integral Calculus', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Complex Numbers (Part 2)', cards: [{ title: 'Complex Numbers (Part 2)', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Arithmetic', cards: [{ title: 'Arithmetic', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Algebraic Structures', cards: [{ title: 'Algebraic Structures', teacher: 'Teacher A', link: '#' }] },
+                { title: 'Probabilities', cards: [{ title: 'Probabilities', teacher: 'Teacher A', link: '#' }] }
+            ],
+            physics: [
+                { title: 'Progressive Mechanical Waves', cards: [{ title: 'Progressive Mechanical Waves', teacher: 'Teacher B', link: '#' }] },
+                { title: 'Periodic Progressive Mechanical Waves', cards: [{ title: 'Periodic Progressive Mechanical Waves', teacher: 'Teacher B', link: '#' }] },
+                { title: 'Propagation of Light Waves', cards: [{ title: 'Propagation of Light Waves', teacher: 'Teacher B', link: '#' }] },
+                { title: 'Radioactive Decay', cards: [{ title: 'Radioactive Decay', teacher: 'Teacher B', link: '#' }] },
+                { title: 'Nuclei, Mass, and Energy', cards: [{ title: 'Nuclei, Mass, and Energy', teacher: 'Teacher B', link: '#' }] }
+            ],
+            engineering: [
+                { title: 'Module 1: Functional Analysis', cards: [
+                    { title: 'Functional Analysis: General Introduction', teacher: 'Teacher C', link: '#' },
+                    { title: 'Functional Analysis: Industrial Enterprise', teacher: 'Teacher C', link: '#' },
+                    { title: 'Functional Analysis: External Functional Analysis', teacher: 'Teacher C', link: '#' },
+                    { title: 'Functional Analysis: Internal Functional Analysis', teacher: 'Teacher C', link: '#' },
+                    { title: 'Functional Analysis: Functional Chain', teacher: '@sciences-ingenieur0 (on youtube)', link: 'https://www.youtube.com/watch?v=iOrObZl6X5w' },
+                ]},
+                { title: 'Module 2: Energy Chain', cards: [
+                    { title: 'Energy Chain: Function Supply', teacher: 'Teacher C', link: '#' },
+                    { title: 'Energy Chain: Function Distribute', teacher: 'Teacher C', link: '#' },
+                    { title: 'Energy Chain: Function Convert', teacher: 'Teacher C', link: '#' },
+                    { title: 'Energy Chain: Function Transmit', teacher: 'Teacher C', link: '#' },
+                ]},
+                { title: 'Module 3: Information Chain', cards: [
+                    { title: 'Information Chain: Technical Drawing', teacher: 'Teacher C', link: '#' },
+                    { title: 'Information Chain: Orthogonal Projection', teacher: 'Teacher C', link: '#' },
+                    { title: 'Information Chain: Cuts and Sections', teacher: 'Teacher C', link: '#' },
+                    { title: 'Information Chain: View Correspondence', teacher: 'Teacher C', link: '#' },
+                    { title: 'Information Chain: Threading and Tapping', teacher: 'Teacher C', link: '#' }
+                ]}
+            ],
+            biology: [
+                { title: 'Transfer of Genetic Information During Sexual Reproduction - Human Genetics', cards: [{ title: 'Transfer of Genetic Information During Sexual Reproduction - Human Genetics', teacher: 'Teacher D', link: '#' }] },
+                { title: 'Variation and Population Genetics', cards: [{ title: 'Variation and Population Genetics', teacher: 'Teacher D', link: '#' }] }
+            ]
+        };
+
+        // API configuration
+        const API_BASE = window.location.origin + '/api';
+        
+        // Auth utility (simplified version)
+        const Auth = {
+            getToken() {
+                return localStorage.getItem('authToken');
+            },
+            
+            async request(url, options = {}) {
+                const token = this.getToken();
+                
+                const config = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token && { Authorization: `Bearer ${token}` }),
+                        ...options.headers
+                    },
+                    ...options
+                };
+
+                const response = await fetch(url, config);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Request failed');
+                }
+
+                return data;
+            },
+
+            showAlert(message, type = 'danger') {
+                const container = document.getElementById('status-container');
+                container.innerHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+        };
+
+        // Display lessons preview
+        function displayLessonsPreview() {
+            const container = document.getElementById('subjects-container');
+            let html = '';
+            let totalLessons = 0;
+
+            Object.keys(lessonsData).forEach(subject => {
+                const lessons = lessonsData[subject];
+                let subjectLessonsCount = 0;
+                
+                lessons.forEach(lesson => {
+                    subjectLessonsCount += lesson.cards.length;
+                });
+                
+                totalLessons += subjectLessonsCount;
+
+                html += `
+                    <div class="subject-section">
+                        <h5 class="text-primary">${subject.charAt(0).toUpperCase() + subject.slice(1)} (${subjectLessonsCount} lessons)</h5>
+                        <div class="lessons-list">
+                `;
+
+                lessons.forEach(lesson => {
+                    lesson.cards.forEach(card => {
+                        html += `
+                            <div class="lesson-item">
+                                <strong>${card.title}</strong><br>
+                                <small class="text-muted">Teacher: ${card.teacher}</small>
+                            </div>
+                        `;
+                    });
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            
+            // Update total count
+            const totalElement = document.createElement('div');
+            totalElement.className = 'alert alert-secondary text-center';
+            totalElement.innerHTML = `<strong>Total: ${totalLessons} lessons across ${Object.keys(lessonsData).length} subjects</strong>`;
+            container.insertBefore(totalElement, container.firstChild);
+        }
+
+        // Migrate lessons to content management system
+        async function migrateLessons() {
+            const spinner = document.getElementById('migrate-spinner');
+            const btn = document.getElementById('migrate-btn');
+            
+            spinner.classList.remove('d-none');
+            btn.disabled = true;
+
+            try {
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const [subject, lessons] of Object.entries(lessonsData)) {
+                    for (const lesson of lessons) {
+                        for (const [index, card] of lesson.cards.entries()) {
+                            try {
+                                const contentData = {
+                                    title: card.title,
+                                    body: `Subject: ${subject}\nTeacher: ${card.teacher}`,
+                                    section: 'lessons',
+                                    language: 'en',
+                                    order: successCount,
+                                    isActive: true,
+                                    metadata: {
+                                        subject: subject,
+                                        teacher: card.teacher,
+                                        videoLink: card.link,
+                                        originalTitle: lesson.title
+                                    }
+                                };
+
+                                await Auth.request(`${API_BASE}/content`, {
+                                    method: 'POST',
+                                    body: JSON.stringify(contentData)
+                                });
+
+                                successCount++;
+                            } catch (error) {
+                                console.error(`Error migrating lesson: ${card.title}`, error);
+                                errorCount++;
+                            }
+                        }
+                    }
+                }
+
+                if (errorCount === 0) {
+                    Auth.showAlert(`✅ Successfully migrated ${successCount} lessons! You can now manage them in the admin dashboard.`, 'success');
+                } else {
+                    Auth.showAlert(`⚠️ Migration completed with ${successCount} successes and ${errorCount} errors. Check console for details.`, 'warning');
+                }
+
+            } catch (error) {
+                console.error('Migration failed:', error);
+                Auth.showAlert(`❌ Migration failed: ${error.message}`, 'danger');
+            } finally {
+                spinner.classList.add('d-none');
+                btn.disabled = false;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            displayLessonsPreview();
+            
+            document.getElementById('migrate-btn').addEventListener('click', () => {
+                if (confirm('This will create content entries for all lessons. Continue?')) {
+                    migrateLessons();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
