@@ -71,3 +71,73 @@ body {
     background: linear-gradient(45deg, var(--misc), var(--misc-sec));
     border: none;
 }
+   .content-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+            transition: transform 0.3s ease;
+        }
+
+        .content-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .section-badge {
+            background-color: var(--misc);
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .btn-custom {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 8px 16px;
+            margin: 2px;
+        }
+
+        .btn-edit {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+            color: white;
+        }
+
+        .btn-delete {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+            color: white;
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--misc);
+            box-shadow: 0 0 0 0.2rem rgba(133, 68, 66, 0.25);
+        }
+
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
