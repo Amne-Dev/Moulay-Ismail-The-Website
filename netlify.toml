@@ -43,6 +43,11 @@
   to = "/admin-dashboard.html"
   status = 200
 
+[[redirects]]
+  from = "/admin/projects"
+  to = "/admin-projects.html"
+  status = 200
+
 # Legacy project routes (redirects)
 [[redirects]]
   from = "/MyIsmail-Web/Projects"

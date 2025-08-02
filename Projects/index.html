@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" defer></script>
-    <script src="projects.js" defer></script>
 </head>
 <body>
     <!-- Sidebar -->
@@ -27,11 +26,11 @@
             </div>
         </div>
         <button onclick="goBack()" class="btn btn-secondary">Go Back</button>
-        <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">Student's Project Work</a></button>
-        <button><a href="/MyIsmail-Web/Lessons/" class="list-group-item list-group-item-action">Teacher's Lessons</a></button>
-        <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">School Activities</a></button>
-        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Connecting Classrooms</a></button>
-        <button><a href="/MyIsmail-Web/Soon/" class="list-group-item list-group-item-action">Sharing Experiences</a></button>
+        <button><a href="/Projects" class="list-group-item list-group-item-action">Student's Project Work</a></button>
+        <button><a href="/Lessons/" class="list-group-item list-group-item-action">Teacher's Lessons</a></button>
+        <button><a href="/Activities" class="list-group-item list-group-item-action">School Activities</a></button>
+        <button><a href="/Soon/" class="list-group-item list-group-item-action">Connecting Classrooms</a></button>
+        <button><a href="/Soon/" class="list-group-item list-group-item-action">Sharing Experiences</a></button>
     </div>
 
     <!-- Arabic Sidebar -->
@@ -41,7 +40,7 @@
             <button class="btn btn-outline-secondary d-md-none">من نحن</button>
             <div class="dropdown language-switch mt-3">
                 <button class="btn btn-secondary dropdown-toggle languageDropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    En
+                    Ar
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="languageDropdown">
                     <li><a class="dropdown-item" href="#" id="switch-to-arabic-ar">عربي</a></li>
@@ -50,16 +49,26 @@
             </div>
         </div>
         <button onclick="goBack()" class="btn btn-secondary">العودة</button>
-        <button><a href="/MyIsmail-Web/Projects" class="list-group-item list-group-item-action">مشاريع الطلاب</a></button>
-        <button><a href="/MyIsmail-Web/Lessons" class="list-group-item list-group-item-action">دروس الأساتدة</a></button>
-        <button><a href="/MyIsmail-Web/Activities" class="list-group-item list-group-item-action">الأنشطة المدرسية</a></button>
-        <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">ربط الفصول الدراسية</a></button>
-        <button><a href="/MyIsmail-Web/Soon" class="list-group-item list-group-item-action">مشاركة التجارب</a></button>
+        <button><a href="/Projects" class="list-group-item list-group-item-action">مشاريع الطلاب</a></button>
+        <button><a href="/Lessons" class="list-group-item list-group-item-action">دروس الأساتدة</a></button>
+        <button><a href="/Activities" class="list-group-item list-group-item-action">الأنشطة المدرسية</a></button>
+        <button><a href="/Soon" class="list-group-item list-group-item-action">ربط الفصول الدراسية</a></button>
+        <button><a href="/Soon" class="list-group-item list-group-item-action">مشاركة التجارب</a></button>
     </div>
 
     <!-- Main Content -->
     <div class="container mt-5" style="width: auto; padding-right: 30vh;">
-        <h1 class="text-center mb-4">Student's Project Work</h1>
+        <h1 class="text-center mb-4" id="main-title">Student's Project Work</h1>
+        
+        <!-- Loading indicator -->
+        <div id="loading-indicator" class="text-center mb-4" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading projects...</p>
+        </div>
+        
+        <!-- Selection buttons -->
         <div id="selection-buttons" class="d-flex justify-content-center mb-4" style="height: 100vh; align-items: center; gap: 1rem;">
             <button id="btn-theory" class="btn btn-primary btn-theory" style="flex: 1; height: 50vh; font-size: 2rem;">In Theory</button>
             <button id="btn-practice" class="btn btn-primary btn-practice" style="flex: 1; height: 50vh; font-size: 2rem;">In Practice</button>
@@ -69,21 +78,80 @@
         <div id="cards-container" class="list-group" style="display: none;">
             <!-- Dynamically loaded cards -->
         </div>
+        
+        <!-- Refresh button (only visible when cards are shown) -->
+        <div id="refresh-section" class="text-center mt-4" style="display: none;">
+            <button id="refresh-btn" class="btn btn-outline-secondary" onclick="refreshProjects()">
+                <i class="fas fa-sync-alt"></i> Refresh Projects
+            </button>
+            <small class="d-block mt-2 text-muted">Last updated: <span id="last-updated">Loading...</span></small>
+        </div>
     </div>
 
+    <!-- Font Awesome for icons -->
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    
+    <!-- Load the new dynamic projects script -->
+    <script src="projects.js"></script>
+    
     <script>
         const selectionButtons = document.getElementById('selection-buttons');
         const theoryButton = document.getElementById('btn-theory');
         const practiceButton = document.getElementById('btn-practice');
         const cardsContainer = document.getElementById('cards-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const refreshSection = document.getElementById('refresh-section');
+        const mainTitle = document.getElementById('main-title');
 
+        // Enhanced loadProjects function with loading states
+        const originalLoadProjects = loadProjects;
+        loadProjects = function(type) {
+            // Show loading
+            loadingIndicator.style.display = 'block';
+            
+            // Call original function
+            originalLoadProjects(type);
+            
+            // Hide loading and show refresh section
+            setTimeout(() => {
+                loadingIndicator.style.display = 'none';
+                refreshSection.style.display = 'block';
+                updateLastUpdatedTime();
+            }, 500);
+        };
+
+        // Update last updated time
+        function updateLastUpdatedTime() {
+            const lastUpdatedElement = document.getElementById('last-updated');
+            if (lastUpdatedElement) {
+                lastUpdatedElement.textContent = new Date().toLocaleTimeString();
+            }
+        }
+
+        // Enhanced goBack function
+        const originalGoBack = goBack;
+        goBack = function() {
+            if (cardsContainer.style.display === 'block') {
+                cardsContainer.style.display = 'none';
+                refreshSection.style.display = 'none';
+                practiceButton.style.display = 'block';
+                theoryButton.style.display = 'block';
+                selectionButtons.style.height = '100vh';
+            } else {
+                window.history.back();
+            }
+        };
+
+        // Button event listeners
         theoryButton.addEventListener('click', () => loadProjects('theory'));
         practiceButton.addEventListener('click', () => loadProjects('practice'));
 
+        // Language switching functionality
         document.getElementById('switch-to-arabic').addEventListener('click', function() {
             document.documentElement.lang = 'ar';
             theoryButton.innerText = 'في النظرية';
             practiceButton.innerText = 'في الممارسة';
+            mainTitle.innerText = 'مشاريع الطلاب';
             document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'Ar');
             document.getElementById('sidebar').style.display = 'none';
             document.getElementById('sidebar-arabic').style.display = 'flex';
@@ -93,6 +161,7 @@
             document.documentElement.lang = 'en';
             theoryButton.innerText = 'In Theory';
             practiceButton.innerText = 'In Practice';
+            mainTitle.innerText = "Student's Project Work";
             document.querySelectorAll('.languageDropdown').forEach(button => button.innerText = 'En');
             document.getElementById('sidebar').style.display = 'flex';
             document.getElementById('sidebar-arabic').style.display = 'none';
@@ -106,45 +175,55 @@
             document.getElementById('switch-to-english').click();
         });
 
-        function loadProjects(type) {
-            const container = document.getElementById('cards-container');
-            container.innerHTML = '';
+        // Show loading on initial page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadingIndicator.style.display = 'block';
+            
+            // Hide loading after projects are loaded
+            setTimeout(() => {
+                loadingIndicator.style.display = 'none';
+            }, 2000);
+        });
 
-            const lang = document.documentElement.lang;
-            const projectsData = lang === 'ar' ? projectsAr : projects;
-            projectsData[type].forEach(project => {
-                const card = document.createElement('div');
-                card.className = 'list-group-item';
-                card.style = 'background-color: var(--bg-sec); color: var(--text-sec); margin-bottom: 1rem; border-radius: 10px; padding: 1.5rem;';
-                card.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <img src="${project.image}" alt="Student Image" class="me-3" style="width: 10vh; height: auto; border-radius: 10px;">
-                        <div>
-                            <h5 style="color: #fff;">${project.title}</h5>
-                            <a href="${project.link}" target="_blank" style="color: var(--misc-sec);">View Project</a>
-                            <p class="mb-0" style="color: var(--misc);">${project.name}</p>
-                        </div>
+        // Error handling for project loading
+        window.addEventListener('error', function(e) {
+            if (e.message.includes('projects') || e.message.includes('API')) {
+                loadingIndicator.style.display = 'none';
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong>Notice:</strong> Unable to load latest projects from server. Showing cached data.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container').prepend(alertDiv);
+            }
+        });
+
+        // Auto-refresh notification
+        let refreshNotificationShown = false;
+        setTimeout(() => {
+            if (!refreshNotificationShown && cardsContainer.style.display === 'block') {
+                refreshNotificationShown = true;
+                const toast = document.createElement('div');
+                toast.className = 'toast show position-fixed top-0 end-0 m-3';
+                toast.innerHTML = `
+                    <div class="toast-header">
+                        <strong class="me-auto">Projects Updated</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        Projects data has been refreshed automatically.
                     </div>
                 `;
-                container.appendChild(card);
-            });
-
-            practiceButton.style.display = 'none';
-            theoryButton.style.display = 'none';
-            selectionButtons.style.height = 0;
-            cardsContainer.style.display = 'block';
-        }
-
-        function goBack() {
-            if (cardsContainer.style.display === 'block') {
-                cardsContainer.style.display = 'none';
-                practiceButton.style.display = 'block';
-                theoryButton.style.display = 'block';
-                selectionButtons.style.height = '100vh';
-            } else {
-                window.history.back();
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 5000);
             }
-        }
+        }, 5 * 60 * 1000); // Show after 5 minutes
     </script>
 </body>
 </html>
