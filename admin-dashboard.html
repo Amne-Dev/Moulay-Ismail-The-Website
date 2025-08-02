@@ -881,6 +881,7 @@
             
             Auth.showAlert('Content deleted successfully!', 'success');
             loadContent(); // Reload content list
+            window.location.reload()
         } catch (error) {
             console.error('Error deleting content:', error);
             Auth.showAlert('Error deleting content: ' + error.message);
