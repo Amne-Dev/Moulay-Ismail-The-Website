@@ -1,61 +1,100 @@
 const jwt = require('jsonwebtoken');
+const { MongoClient, ObjectId } = require('mongodb');
 
-// In-memory storage for content (since we can't use MongoDB easily in serverless)
-// In production, you'd want to use a database service like FaunaDB, Supabase, or Airtable
-let contentStore = [
-  // Sample data for hero section
-  {
-    _id: '1',
-    title: 'Online Community of Teachers and Students',
-    body: 'Welcome to Moulay Ismail High School online platform where teachers and students collaborate and learn together.',
-    imageUrl: '',
-    section: 'hero',
-    order: 0,
-    language: 'en',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '2',
-    title: 'مجتمع تعليمي للمعلمين والطلاب عبر الإنترنت',
-    body: 'مرحبًا بكم في منصة ثانوية مولاي إسماعيل الإلكترونية حيث يتعاون المعلمون والطلاب ويتعلمون معًا.',
-    imageUrl: '',
-    section: 'hero',
-    order: 0,
-    language: 'ar',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  // Sample slideshow data
-  {
-    _id: '3',
-    title: 'Welcome to our Community',
-    body: 'Join our vibrant educational community',
-    imageUrl: 'https://placehold.co/1200x800',
-    section: 'slideshow',
-    order: 0,
-    language: 'en',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '4',
-    title: 'Engage with Teachers and Students',
-    body: 'Connect and collaborate with educators and learners',
-    imageUrl: 'https://placehold.co/1200x800',
-    section: 'slideshow',
-    order: 1,
-    language: 'en',
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
+// MongoDB connection
+let cachedClient = null;
+let cachedDb = null;
+
+const connectToDatabase = async () => {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
   }
-];
 
-let nextId = 5;
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI environment variable is not set');
+  }
+
+  const client = new MongoClient(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
+  await client.connect();
+  const db = client.db(process.env.MONGODB_DB_NAME || 'school_platform');
+
+  cachedClient = client;
+  cachedDb = db;
+
+  return { client, db };
+};
+
+// Initialize sample content
+const initializeSampleContent = async (db) => {
+  try {
+    const content = db.collection('content');
+    const count = await content.countDocuments();
+    
+    if (count === 0) {
+      const sampleContent = [
+        // Sample data for hero section
+        {
+          title: 'Online Community of Teachers and Students',
+          body: 'Welcome to Moulay Ismail High School online platform where teachers and students collaborate and learn together.',
+          imageUrl: '',
+          section: 'hero',
+          order: 0,
+          language: 'en',
+          isActive: true,
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'مجتمع تعليمي للمعلمين والطلاب عبر الإنترنت',
+          body: 'مرحبًا بكم في منصة ثانوية مولاي إسماعيل الإلكترونية حيث يتعاون المعلمون والطلاب ويتعلمون معًا.',
+          imageUrl: '',
+          section: 'hero',
+          order: 0,
+          language: 'ar',
+          isActive: true,
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        // Sample slideshow data
+        {
+          title: 'Welcome to our Community',
+          body: 'Join our vibrant educational community',
+          imageUrl: 'https://placehold.co/1200x800',
+          section: 'slideshow',
+          order: 0,
+          language: 'en',
+          isActive: true,
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          title: 'Engage with Teachers and Students',
+          body: 'Connect and collaborate with educators and learners',
+          imageUrl: 'https://placehold.co/1200x800',
+          section: 'slideshow',
+          order: 1,
+          language: 'en',
+          isActive: true,
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      
+      await content.insertMany(sampleContent);
+      console.log('Sample content initialized');
+    }
+  } catch (error) {
+    console.error('Error initializing sample content:', error);
+  }
+};
 
 // Helper functions
 const parseBody = (event) => {
@@ -101,86 +140,187 @@ const verifyToken = (event) => {
 };
 
 // Content handlers
-const getAllContent = (queryParams) => {
-  const { section, language = 'en' } = queryParams;
-  
-  let filteredContent = contentStore.filter(item => item.isActive);
-  
-  if (section) {
-    filteredContent = filteredContent.filter(item => item.section === section);
+const getAllContent = async (db, queryParams) => {
+  try {
+    const { section, language = 'en' } = queryParams;
+    const content = db.collection('content');
+    
+    let filter = { isActive: true };
+    
+    if (section) {
+      filter.section = section;
+    }
+    
+    if (language) {
+      filter.language = language;
+    }
+    
+    const results = await content
+      .find(filter)
+      .sort({ order: 1, createdAt: 1 })
+      .toArray();
+    
+    return results;
+  } catch (error) {
+    console.error('Error getting all content:', error);
+    throw error;
   }
-  
-  if (language) {
-    filteredContent = filteredContent.filter(item => item.language === language);
-  }
-  
-  return filteredContent.sort((a, b) => a.order - b.order);
 };
 
-const getContentById = (id) => {
-  return contentStore.find(item => item._id === id);
+const getContentById = async (db, id) => {
+  try {
+    const content = db.collection('content');
+    
+    if (!ObjectId.isValid(id)) {
+      return null;
+    }
+    
+    const result = await content.findOne({ _id: new ObjectId(id) });
+    return result;
+  } catch (error) {
+    console.error('Error getting content by ID:', error);
+    throw error;
+  }
 };
 
-const createContent = (data) => {
-  const newContent = {
-    _id: String(nextId++),
-    title: data.title,
-    body: data.body,
-    imageUrl: data.imageUrl || '',
-    section: data.section,
-    order: data.order || 0,
-    language: data.language || 'en',
-    metadata: data.metadata || {},
-    isActive: data.isActive !== undefined ? data.isActive : true,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-  
-  contentStore.push(newContent);
-  return newContent;
+const createContent = async (db, data) => {
+  try {
+    const content = db.collection('content');
+    
+    const newContent = {
+      title: data.title,
+      body: data.body,
+      imageUrl: data.imageUrl || '',
+      section: data.section,
+      order: data.order || 0,
+      language: data.language || 'en',
+      metadata: data.metadata || {},
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const result = await content.insertOne(newContent);
+    
+    // Return the created document
+    const createdContent = await content.findOne({ _id: result.insertedId });
+    return createdContent;
+  } catch (error) {
+    console.error('Error creating content:', error);
+    throw error;
+  }
 };
 
-const updateContent = (id, data) => {
-  const index = contentStore.findIndex(item => item._id === id);
-  
-  if (index === -1) {
-    return null;
+const updateContent = async (db, id, data) => {
+  try {
+    const content = db.collection('content');
+    
+    if (!ObjectId.isValid(id)) {
+      return null;
+    }
+    
+    const updateData = {
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
+    
+    const result = await content.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    
+    return result.value;
+  } catch (error) {
+    console.error('Error updating content:', error);
+    throw error;
   }
-  
-  const updatedContent = {
-    ...contentStore[index],
-    ...data,
-    updatedAt: new Date()
-  };
-  
-  contentStore[index] = updatedContent;
-  return updatedContent;
 };
 
-const deleteContent = (id) => {
-  const index = contentStore.findIndex(item => item._id === id);
-  
-  if (index === -1) {
-    return null;
+const deleteContent = async (db, id) => {
+  try {
+    const content = db.collection('content');
+    
+    if (!ObjectId.isValid(id)) {
+      return null;
+    }
+    
+    const result = await content.findOneAndDelete({ _id: new ObjectId(id) });
+    return result.value;
+  } catch (error) {
+    console.error('Error deleting content:', error);
+    throw error;
   }
-  
-  return contentStore.splice(index, 1)[0];
 };
 
-const getAllContentAdmin = (queryParams) => {
-  const { section, language } = queryParams;
-  
-  let filteredContent = contentStore;
-  
-  if (section) {
-    filteredContent = filteredContent.filter(item => item.section === section);
+const getAllContentAdmin = async (db, queryParams) => {
+  try {
+    const { section, language } = queryParams;
+    const content = db.collection('content');
+    
+    let filter = {};
+    
+    if (section) {
+      filter.section = section;
+    }
+    
+    if (language) {
+      filter.language = language;
+    }
+    
+    const results = await content
+      .find(filter)
+      .sort({ order: 1, createdAt: 1 })
+      .toArray();
+    
+    return results;
+  } catch (error) {
+    console.error('Error getting all content for admin:', error);
+    throw error;
   }
-  
-  if (language) {
-    filteredContent = filteredContent.filter(item => item.language === language);
+};
+
+const getContentStats = async (db) => {
+  try {
+    const content = db.collection('content');
+    
+    const stats = await content.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          active: { $sum: { $cond: ['$isActive', 1, 0] } },
+          sections: { $addToSet: '$section' },
+          languages: { $addToSet: '$language' }
+        }
+      }
+    ]).toArray();
+    
+    const sectionCounts = await content.aggregate([
+      {
+        $group: {
+          _id: '$section',
+          count: { $sum: 1 },
+          active: { $sum: { $cond: ['$isActive', 1, 0] } }
+        }
+      }
+    ]).toArray();
+    
+    return {
+      ...stats[0],
+      sectionCounts
+    };
+  } catch (error) {
+    console.error('Error getting content stats:', error);
+    throw error;
   }
-  
-  return filteredContent.sort((a, b) => a.order - b.order);
 };
 
 exports.handler = async (event, context) => {
@@ -190,6 +330,10 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Initialize database connection and sample content
+    const { db } = await connectToDatabase();
+    await initializeSampleContent(db);
+    
     // Debug logging
     console.log('Event path:', event.path);
     console.log('Event method:', event.httpMethod);
@@ -214,16 +358,16 @@ exports.handler = async (event, context) => {
 
     // Public routes
     if (method === 'GET' && (path === '' || path === 'all')) {
-      const content = getAllContent(queryParams);
-      return createResponse(200, content);
+      const contentResults = await getAllContent(db, queryParams);
+      return createResponse(200, contentResults);
     }
 
-    if (method === 'GET' && path && !path.includes('admin') && path !== '') {
-      const content = getContentById(path);
-      if (!content) {
+    if (method === 'GET' && path && !path.includes('admin') && path !== 'stats') {
+      const contentResult = await getContentById(db, path);
+      if (!contentResult) {
         return createResponse(404, { message: 'Content not found' });
       }
-      return createResponse(200, content);
+      return createResponse(200, contentResult);
     }
 
     // Protected routes - require authentication
@@ -235,8 +379,13 @@ exports.handler = async (event, context) => {
 
     // Admin routes
     if (method === 'GET' && path === 'admin/all') {
-      const content = getAllContentAdmin(queryParams);
-      return createResponse(200, content);
+      const contentResults = await getAllContentAdmin(db, queryParams);
+      return createResponse(200, contentResults);
+    }
+
+    if (method === 'GET' && path === 'stats') {
+      const stats = await getContentStats(db);
+      return createResponse(200, stats);
     }
 
     if (method === 'POST' && (path === '' || path === 'create')) {
@@ -249,7 +398,7 @@ exports.handler = async (event, context) => {
         return createResponse(400, { message: 'Title, body, and section are required' });
       }
 
-      const newContent = createContent(body);
+      const newContent = await createContent(db, body);
       return createResponse(201, newContent);
     }
 
@@ -259,7 +408,7 @@ exports.handler = async (event, context) => {
         return createResponse(400, { message: 'Invalid request body' });
       }
 
-      const updatedContent = updateContent(path, body);
+      const updatedContent = await updateContent(db, path, body);
       if (!updatedContent) {
         return createResponse(404, { message: 'Content not found' });
       }
@@ -268,12 +417,15 @@ exports.handler = async (event, context) => {
     }
 
     if (method === 'DELETE' && path) {
-      const deletedContent = deleteContent(path);
+      const deletedContent = await deleteContent(db, path);
       if (!deletedContent) {
         return createResponse(404, { message: 'Content not found' });
       }
 
-      return createResponse(200, { message: 'Content deleted successfully' });
+      return createResponse(200, { 
+        message: 'Content deleted successfully',
+        deletedContent 
+      });
     }
 
     return createResponse(404, { 

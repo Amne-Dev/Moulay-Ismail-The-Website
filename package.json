@@ -1,21 +1,22 @@
 {
-  "name": "moulay-ismail-webapp",
+  "name": "moulay-ismail-school",
   "version": "1.0.0",
-  "description": "Dynamic web application for Moulay Ismail High School",
-  "main": "index.html",
+  "description": "School website with content management",
+  "main": "index.js",
   "scripts": {
-    "start": "netlify dev",
-    "build": "echo 'No build step required for this project'",
-    "deploy": "netlify deploy --prod"
+    "dev": "netlify dev",
+    "build": "echo 'Build complete'",
+    "migrate": "node scripts/migrate-lessons.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
+    "mongodb": "^6.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "netlify-cli": "^17.0.0"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "keywords": ["school", "education", "netlify", "mongodb"],
+  "author": "Moulay Ismail High School",
+  "license": "MIT"
 }

@@ -1,0 +1,139 @@
+const { MongoClient } = require('mongodb');
+
+// You'll need to replace this with your actual MongoDB URI
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority';
+const DB_NAME = 'moulay_ismail_school';
+
+// Your lesson data (copied from lessons.js)
+const lessonsData = {
+  english: [
+    { title: 'The Future Tense with "will" and "be going to"', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=bOfDvsHddE0&t=9s' },
+    { title: 'What and how I learn English', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=sTbrX9yrRA8&t=626s' },
+    { title: 'Learning vocabulary (health)', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=8DFA1lQ8HFM&t=1219s' },
+    { title: 'How to tell others about me', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=MChmfeYZMew&t=296s' },
+    { title: 'Quantity and quantifiers', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=wsmpvTuGJa8&t=393s' },
+    { title: 'Superlative form', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=WGD0pXtnElU&t=166s' },
+    { title: 'My family tree', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=cAzOqyMNwHc&t=312s' },
+    { title: 'Using too and enough', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=WEx7cx5pljw' },
+    { title: 'Comparative form', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=wZWi5DLi1Mc' },
+    { title: 'Expressing purpose', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=16DrNprmkrc&t=31s' },
+    { title: 'Adverbs of frequency', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=sNEuYYcT61U&t=89s' },
+    { title: 'Expressing and seeking advice', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=-3Uz2gae9Os&t=119s' },
+    { title: 'Used to and didn\'t use to', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=D_mfEkPA2s4&t=345s' },
+    { title: 'Present perfect', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=E_NmFgcWdeE&t=41s' },
+    { title: 'The past simple', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=VdE-mKLHtpA' },
+    { title: 'Pronouns in English', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=ZAtVkfcWWRQ&t=724s' },
+    { title: 'The present simple', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=qkXB2HkB8lo&t=931s' },
+    { title: 'Expressing wishes', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=prbEP8JVL0c' },
+    { title: 'Conditional sentence', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=1xPoZx-jopY&t=1633s' },
+    { title: 'The passive voice', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=PpaUB8rBt-4&t=9s' }
+  ],
+  maths: [
+    { title: 'Limits and Continuity', teacher: 'Teacher A', link: '#' },
+    { title: 'Derivation and Study of Functions', teacher: 'Teacher A', link: '#' },
+    { title: 'Mean Value Theorem (MVT)', teacher: 'Teacher A', link: '#' },
+    { title: 'Numerical Sequences', teacher: 'Teacher A', link: '#' },
+    { title: 'Logarithmic Functions', teacher: 'Teacher A', link: '#' },
+    { title: 'Exponential Functions', teacher: 'Teacher A', link: '#' },
+    { title: 'Differential Equations', teacher: 'Teacher A', link: '#' },
+    { title: 'Complex Numbers (Part 1)', teacher: 'Teacher A', link: '#' },
+    { title: 'Primitive Functions and Integral Calculus', teacher: 'Teacher A', link: '#' },
+    { title: 'Complex Numbers (Part 2)', teacher: 'Teacher A', link: '#' },
+    { title: 'Arithmetic', teacher: 'Teacher A', link: '#' },
+    { title: 'Algebraic Structures', teacher: 'Teacher A', link: '#' },
+    { title: 'Probabilities', teacher: 'Teacher A', link: '#' }
+  ],
+  physics: [
+    { title: 'Progressive Mechanical Waves', teacher: 'Teacher B', link: '#' },
+    { title: 'Periodic Progressive Mechanical Waves', teacher: 'Teacher B', link: '#' },
+    { title: 'Propagation of Light Waves', teacher: 'Teacher B', link: '#' },
+    { title: 'Radioactive Decay', teacher: 'Teacher B', link: '#' },
+    { title: 'Nuclei, Mass, and Energy', teacher: 'Teacher B', link: '#' }
+  ],
+  engineering: [
+    { title: 'Functional Analysis: General Introduction', teacher: 'Teacher C', link: '#' },
+    { title: 'Functional Analysis: Industrial Enterprise', teacher: 'Teacher C', link: '#' },
+    { title: 'Functional Analysis: External Functional Analysis', teacher: 'Teacher C', link: '#' },
+    { title: 'Functional Analysis: Internal Functional Analysis', teacher: 'Teacher C', link: '#' },
+    { title: 'Functional Analysis: Functional Chain', teacher: '@sciences-ingenieur0 (on youtube)', link: 'https://www.youtube.com/watch?v=iOrObZl6X5w' }
+  ],
+  biology: [
+    { title: 'Transfer of Genetic Information During Sexual Reproduction - Human Genetics', teacher: 'Teacher D', link: '#' },
+    { title: 'Variation and Population Genetics', teacher: 'Teacher D', link: '#' }
+  ]
+};
+
+async function migrateData() {
+  console.log('🚀 Starting migration to MongoDB...');
+  
+  const client = new MongoClient(MONGODB_URI);
+  
+  try {
+    await client.connect();
+    console.log('✅ Connected to MongoDB');
+    
+    const db = client.db(DB_NAME);
+    const contentCollection = db.collection('content');
+    
+    // Clear existing lessons (optional)
+    const existingLessons = await contentCollection.deleteMany({ section: 'lessons' });
+    console.log(`🗑️  Cleared ${existingLessons.deletedCount} existing lessons`);
+    
+    let totalInserted = 0;
+    
+    // Migrate each subject
+    for (const [subject, lessons] of Object.entries(lessonsData)) {
+      console.log(`\n📚 Migrating ${subject} lessons...`);
+      
+      for (let i = 0; i < lessons.length; i++) {
+        const lesson = lessons[i];
+        
+        const contentData = {
+          title: lesson.title,
+          body: `Subject: ${subject}\nTeacher: ${lesson.teacher}`,
+          section: 'lessons',
+          language: 'en',
+          isActive: true,
+          order: i,
+          metadata: {
+            subject: subject,
+            teacher: lesson.teacher,
+            videoLink: lesson.link,
+            duration: null // You can add this later
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        await contentCollection.insertOne(contentData);
+        totalInserted++;
+        
+        console.log(`   ✓ ${lesson.title}`);
+      }
+      
+      console.log(`✅ Migrated ${lessons.length} ${subject} lessons`);
+    }
+    
+    console.log(`\n🎉 Migration completed! Total lessons migrated: ${totalInserted}`);
+    
+    // Create indexes for better performance
+    await contentCollection.createIndex({ section: 1, language: 1 });
+    await contentCollection.createIndex({ 'metadata.subject': 1 });
+    await contentCollection.createIndex({ order: 1 });
+    
+    console.log('✅ Database indexes created');
+    
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+  } finally {
+    await client.close();
+    console.log('🔌 Database connection closed');
+  }
+}
+
+// Run migration
+if (require.main === module) {
+  migrateData().catch(console.error);
+}
+
+module.exports = { migrateData, lessonsData };

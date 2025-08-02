@@ -1,5 +1,33 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { MongoClient } = require('mongodb');
+
+// MongoDB connection
+let cachedClient = null;
+let cachedDb = null;
+
+const connectToDatabase = async () => {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI environment variable is not set');
+  }
+
+  const client = new MongoClient(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
+  await client.connect();
+  const db = client.db(process.env.MONGODB_DB_NAME || 'school_platform');
+
+  cachedClient = client;
+  cachedDb = db;
+
+  return { client, db };
+};
 
 // Helper function to parse request body
 const parseBody = (event) => {
@@ -24,6 +52,42 @@ const createResponse = (statusCode, body) => {
   };
 };
 
+// Initialize admin user if it doesn't exist
+const initializeAdminUser = async (db) => {
+  try {
+    const users = db.collection('users');
+    const adminUser = process.env.ADMIN_USER || 'admin';
+    
+    const existingAdmin = await users.findOne({ username: adminUser });
+    
+    if (!existingAdmin) {
+      const adminPassHash = process.env.ADMIN_PASS_HASH;
+      let hashedPassword;
+      
+      if (adminPassHash) {
+        hashedPassword = adminPassHash;
+      } else {
+        // Create hash for default password 'admin123'
+        const defaultPassword = 'admin123';
+        hashedPassword = await bcrypt.hash(defaultPassword, 12);
+        console.log('Warning: Using default password. Set ADMIN_PASS_HASH in production.');
+      }
+      
+      await users.insertOne({
+        username: adminUser,
+        password: hashedPassword,
+        isAdmin: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      console.log('Admin user initialized');
+    }
+  } catch (error) {
+    console.error('Error initializing admin user:', error);
+  }
+};
+
 // Login handler
 const handleLogin = async (body) => {
   const { username, password } = body;
@@ -33,41 +97,50 @@ const handleLogin = async (body) => {
     return createResponse(400, { message: 'Username and password are required' });
   }
 
-  // Check credentials against environment variables
-  const adminUser = process.env.ADMIN_USER || 'admin';
-  const adminPassHash = process.env.ADMIN_PASS_HASH;
+  try {
+    const { db } = await connectToDatabase();
+    const users = db.collection('users');
+    
+    // Find user by username
+    const user = await users.findOne({ username });
+    
+    if (!user) {
+      return createResponse(401, { message: 'Invalid credentials' });
+    }
 
-  if (username !== adminUser) {
-    return createResponse(401, { message: 'Invalid credentials' });
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      return createResponse(401, { message: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, username: user.username, isAdmin: user.isAdmin },
+      process.env.JWT_SECRET || 'fallback-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    // Update last login
+    await users.updateOne(
+      { _id: user._id },
+      { $set: { lastLogin: new Date() } }
+    );
+
+    return createResponse(200, {
+      message: 'Login successful',
+      token,
+      user: { 
+        id: user._id,
+        username: user.username, 
+        isAdmin: user.isAdmin 
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return createResponse(500, { message: 'Internal server error during login' });
   }
-
-  // If no hash is set, create one from a default password
-  let isValidPassword = false;
-  if (adminPassHash) {
-    isValidPassword = await bcrypt.compare(password, adminPassHash);
-  } else {
-    // Fallback for development - use 'admin123' as default password
-    const defaultPassword = 'admin123';
-    isValidPassword = password === defaultPassword;
-    console.log('Warning: Using default password. Set ADMIN_PASS_HASH in production.');
-  }
-
-  if (!isValidPassword) {
-    return createResponse(401, { message: 'Invalid credentials' });
-  }
-
-  // Generate JWT token
-  const token = jwt.sign(
-    { username: adminUser, isAdmin: true },
-    process.env.JWT_SECRET || 'fallback-secret-key',
-    { expiresIn: '24h' }
-  );
-
-  return createResponse(200, {
-    message: 'Login successful',
-    token,
-    user: { username: adminUser, isAdmin: true }
-  });
 };
 
 // Logout handler
@@ -98,7 +171,11 @@ const handleVerify = (event) => {
 
     return createResponse(200, {
       message: 'Token is valid',
-      user: { username: decoded.username, isAdmin: decoded.isAdmin }
+      user: { 
+        id: decoded.userId,
+        username: decoded.username, 
+        isAdmin: decoded.isAdmin 
+      }
     });
   } catch (error) {
     console.error('Token verification error:', error);
@@ -113,6 +190,58 @@ const handleVerify = (event) => {
   }
 };
 
+// Register handler (for creating additional admin users)
+const handleRegister = async (body) => {
+  const { username, password, isAdmin = false } = body;
+
+  // Validate input
+  if (!username || !password) {
+    return createResponse(400, { message: 'Username and password are required' });
+  }
+
+  if (password.length < 6) {
+    return createResponse(400, { message: 'Password must be at least 6 characters long' });
+  }
+
+  try {
+    const { db } = await connectToDatabase();
+    const users = db.collection('users');
+    
+    // Check if user already exists
+    const existingUser = await users.findOne({ username });
+    
+    if (existingUser) {
+      return createResponse(409, { message: 'Username already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+    
+    // Create new user
+    const newUser = {
+      username,
+      password: hashedPassword,
+      isAdmin,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const result = await users.insertOne(newUser);
+    
+    return createResponse(201, {
+      message: 'User created successfully',
+      user: {
+        id: result.insertedId,
+        username,
+        isAdmin
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return createResponse(500, { message: 'Internal server error during registration' });
+  }
+};
+
 exports.handler = async (event, context) => {
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
@@ -120,10 +249,13 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Initialize database connection and admin user
+    const { db } = await connectToDatabase();
+    await initializeAdminUser(db);
+    
     // Debug logging
     console.log('Event path:', event.path);
     console.log('Event method:', event.httpMethod);
-    console.log('Event headers:', event.headers);
     
     // Extract the route from the path
     let path = event.path.replace('/.netlify/functions/auth', '');
@@ -158,6 +290,14 @@ exports.handler = async (event, context) => {
 
     if (path === 'verify' && method === 'GET') {
       return handleVerify(event);
+    }
+
+    if (path === 'register' && method === 'POST') {
+      const body = parseBody(event);
+      if (!body) {
+        return createResponse(400, { message: 'Invalid request body' });
+      }
+      return await handleRegister(body);
     }
 
     // If we get here, route wasn't found
