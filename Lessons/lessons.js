@@ -1,11 +1,18 @@
 const subjectButtons = document.getElementById('subject-buttons');
 const cardsContainer = document.getElementById('cards-container');
 
+// API configuration
+const API_BASE = window.location.origin + '/api';
+
+// Current language tracking
+let currentLanguage = 'en';
+
 document.querySelectorAll('.subject-btn').forEach(button => {
     button.addEventListener('click', () => loadLessonCards(button.dataset.subject));
 });
 
 document.getElementById('switch-to-arabic').addEventListener('click', function() {
+    currentLanguage = 'ar';
     document.documentElement.lang = 'ar';
     document.querySelectorAll('.subject-btn').forEach(button => {
         switch (button.dataset.subject) {
@@ -27,6 +34,7 @@ document.getElementById('switch-to-arabic').addEventListener('click', function()
 });
 
 document.getElementById('switch-to-english').addEventListener('click', function() {
+    currentLanguage = 'en';
     document.documentElement.lang = 'en';
     document.querySelectorAll('.subject-btn').forEach(button => {
         switch (button.dataset.subject) {
@@ -55,134 +63,224 @@ document.getElementById('switch-to-english-ar').addEventListener('click', functi
     document.getElementById('switch-to-english').click();
 });
 
-function loadLessonCards(subject) {
-    cardsContainer.innerHTML = ''; // Clear previous cards
-    const lessons = getLessonsForSubject(subject);
-    lessons.forEach(lesson => {
-        lesson.cards.forEach(card => {
-            const cardElement = document.createElement('div');
-            cardElement.className = 'list-group-item';
-            cardElement.style = 'background-color: var(--bg-sec); color: var(--text-sec); margin-bottom: 1rem; border-radius: 10px; padding: 1.5rem;';
-            cardElement.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <div>
-                        <h5 style="color: #fff;">${card.title}</h5>
-                        <p style="color: var(--text-sec);">Teacher: ${card.teacher}</p>
-                    </div>
-                 <a href="${card.link}" class="btn btn-primary" style="position: absolute; right: 1rem; border: none;" download>Watch</a>    
+// Updated function to load lessons from API
+async function loadLessonCards(subject) {
+    cardsContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
+    try {
+        const lessons = await getLessonsForSubject(subject);
+        
+        cardsContainer.innerHTML = ''; // Clear loading spinner
+        
+        if (lessons.length === 0) {
+            cardsContainer.innerHTML = `
+                <div class="text-center p-4">
+                    <h5>No lessons found for ${subject}</h5>
+                    <p class="text-muted">Lessons for this subject haven't been added yet.</p>
                 </div>
             `;
-            cardsContainer.appendChild(cardElement);
-        });
-    });
+        } else {
+            lessons.forEach(lesson => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'list-group-item';
+                cardElement.style = 'background-color: var(--bg-sec); color: var(--text-sec); margin-bottom: 1rem; border-radius: 10px; padding: 1.5rem;';
+                
+                // Extract teacher and video link from lesson data
+                const teacher = lesson.metadata?.teacher || extractTeacherFromBody(lesson.body) || 'Unknown Teacher';
+                const videoLink = lesson.metadata?.videoLink || lesson.metadata?.link || extractLinkFromBody(lesson.body) || '#';
+                
+                cardElement.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h5 style="color: #fff;">${escapeHtml(lesson.title)}</h5>
+                            <p style="color: var(--text-sec);">Teacher: ${escapeHtml(teacher)}</p>
+                            ${lesson.body && lesson.body !== `Subject: ${subject}\nTeacher: ${teacher}` ? `<p style="color: var(--text-sec); font-size: 0.9em;">${escapeHtml(lesson.body.substring(0, 100))}${lesson.body.length > 100 ? '...' : ''}</p>` : ''}
+                        </div>
+                        ${videoLink !== '#' ? 
+                            `<a href="${escapeHtml(videoLink)}" class="btn btn-primary" style="position: absolute; right: 1rem; border: none;" target="_blank">Watch</a>` :
+                            `<button class="btn btn-secondary" style="position: absolute; right: 1rem; border: none;" disabled>No Video</button>`
+                        }
+                    </div>
+                `;
+                cardsContainer.appendChild(cardElement);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading lessons:', error);
+        cardsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <h5>Error Loading Lessons</h5>
+                <p>There was an error loading lessons for ${subject}. Please try again later.</p>
+                <button class="btn btn-outline-danger" onclick="loadLessonCards('${subject}')">Retry</button>
+            </div>
+        `;
+    }
 
     subjectButtons.style.display = 'none';
     cardsContainer.style.display = 'block';
 }
 
-function getLessonsForSubject(subject) {
+// Fetch lessons from API with fallback to hardcoded data
+async function getLessonsForSubject(subject) {
+    try {
+        // First, try to get lessons from the API
+        const response = await fetch(`${API_BASE}/content?section=lessons&language=${currentLanguage}&isActive=true`);
+        
+        if (response.ok) {
+            const allLessons = await response.json();
+            
+            // Filter lessons by subject
+            const filteredLessons = allLessons.filter(lesson => {
+                // Check if metadata contains subject
+                if (lesson.metadata && lesson.metadata.subject === subject) {
+                    return true;
+                }
+                
+                // Check if body contains subject information
+                if (lesson.body && lesson.body.toLowerCase().includes(`subject: ${subject}`)) {
+                    return true;
+                }
+                
+                // Check if title contains subject-related keywords
+                const subjectKeywords = getSubjectKeywords(subject);
+                return subjectKeywords.some(keyword => 
+                    lesson.title.toLowerCase().includes(keyword.toLowerCase())
+                );
+            });
+            
+            // Sort by order if available, otherwise by title
+            filteredLessons.sort((a, b) => {
+                if (a.order !== undefined && b.order !== undefined) {
+                    return a.order - b.order;
+                }
+                return a.title.localeCompare(b.title);
+            });
+            
+            return filteredLessons;
+        }
+    } catch (error) {
+        console.warn('API request failed, falling back to hardcoded data:', error);
+    }
+    
+    // Fallback to hardcoded data if API fails
+    return getHardcodedLessonsForSubject(subject);
+}
+
+// Helper function to get subject-related keywords for filtering
+function getSubjectKeywords(subject) {
+    const keywordMap = {
+        'english': ['english', 'grammar', 'vocabulary', 'tense', 'verb', 'adjective', 'adverb', 'pronoun'],
+        'maths': ['math', 'mathematics', 'algebra', 'calculus', 'geometry', 'function', 'equation', 'derivative'],
+        'physics': ['physics', 'wave', 'mechanics', 'circuit', 'energy', 'force', 'motion', 'electromagnetic'],
+        'engineering': ['engineering', 'analysis', 'functional', 'energy chain', 'information', 'technical'],
+        'biology': ['biology', 'genetic', 'reproduction', 'variation', 'population', 'cell', 'organism'],
+        'french': ['french', 'français', 'grammaire', 'vocabulaire'],
+        'arabic': ['arabic', 'عربي', 'نحو', 'صرف', 'بلاغة'],
+        'philosophy': ['philosophy', 'ethics', 'logic', 'metaphysics'],
+        'islamic-education': ['islamic', 'islam', 'quran', 'hadith', 'fiqh']
+    };
+    
+    return keywordMap[subject] || [subject];
+}
+
+// Helper function to extract teacher from body text
+function extractTeacherFromBody(body) {
+    if (!body) return null;
+    
+    const teacherMatch = body.match(/Teacher:\s*(.+)/i);
+    return teacherMatch ? teacherMatch[1].trim() : null;
+}
+
+// Helper function to extract link from body text or metadata
+function extractLinkFromBody(body) {
+    if (!body) return null;
+    
+    const urlMatch = body.match(/(https?:\/\/[^\s]+)/);
+    return urlMatch ? urlMatch[1] : null;
+}
+
+// HTML escape function for security
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Fallback hardcoded data (your original data)
+function getHardcodedLessonsForSubject(subject) {
     if (subject === 'english') {
         return [
-            { title: 'The Future Tense with "will" and "be going to"', cards: [{ title: 'The Future Tense with "will" and "be going to"', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=bOfDvsHddE0&t=9s' }] },
-            { title: 'What and how I learn English', cards: [{ title: 'What and how I learn English', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=sTbrX9yrRA8&t=626s' }] },
-            { title: 'Learning vocabulary (health)', cards: [{ title: 'Learning vocabulary (health)', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=8DFA1lQ8HFM&t=1219s' }] },
-            { title: 'How to tell others about me', cards: [{ title: 'How to tell others about me', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=MChmfeYZMew&t=296s' }] },
-            { title: 'Quantity and quantifiers', cards: [{ title: 'Quantity and quantifiers', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=wsmpvTuGJa8&t=393s' }] },
-            { title: 'Superlative form', cards: [{ title: 'Superlative form', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=WGD0pXtnElU&t=166s' }] },
-            { title: 'My family tree', cards: [{ title: 'My family tree', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=cAzOqyMNwHc&t=312s' }] },
-            { title: 'Using too and enough', cards: [{ title: 'Using too and enough', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=WEx7cx5pljw' }] },
-            { title: 'Comparative form', cards: [{ title: 'Comparative form', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=wZWi5DLi1Mc' }] },
-            { title: 'Expressing purpose', cards: [{ title: 'Expressing purpose', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=16DrNprmkrc&t=31s' }] },
-            { title: 'Adverbs of frequency', cards: [{ title: 'Adverbs of frequency', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=sNEuYYcT61U&t=89s' }] },
-            { title: 'Expressing and seeking advice', cards: [{ title: 'Expressing and seeking advice', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=-3Uz2gae9Os&t=119s' }] },
-            { title: 'Used to and didn’t use to', cards: [{ title: 'Used to and didn’t use to', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=D_mfEkPA2s4&t=345s' }] },
-            { title: 'Present perfect', cards: [{ title: 'Present perfect', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=E_NmFgcWdeE&t=41s' }] },
-            { title: 'The past simple', cards: [{ title: 'The past simple', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=VdE-mKLHtpA' }] },
-            { title: 'Pronouns in English', cards: [{ title: 'Pronouns in English', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=ZAtVkfcWWRQ&t=724s' }] },
-            { title: 'The present simple', cards: [{ title: 'The present simple', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=qkXB2HkB8lo&t=931s' }] },
-            { title: 'Expressing wishes', cards: [{ title: 'Expressing wishes', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=prbEP8JVL0c' }] },
-            { title: 'Conditional sentence', cards: [{ title: 'Conditional sentence', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=1xPoZx-jopY&t=1633s' }] },
-            { title: 'The passive voice', cards: [{ title: 'The passive voice', teacher: 'Mohamed Fettah', link: 'https://www.youtube.com/watch?v=PpaUB8rBt-4&t=9s' }] }
+            { title: 'The Future Tense with "will" and "be going to"', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=bOfDvsHddE0&t=9s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 0 },
+            { title: 'What and how I learn English', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=sTbrX9yrRA8&t=626s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 1 },
+            { title: 'Learning vocabulary (health)', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=8DFA1lQ8HFM&t=1219s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 2 },
+            { title: 'How to tell others about me', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=MChmfeYZMew&t=296s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 3 },
+            { title: 'Quantity and quantifiers', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=wsmpvTuGJa8&t=393s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 4 },
+            { title: 'Superlative form', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=WGD0pXtnElU&t=166s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 5 },
+            { title: 'My family tree', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=cAzOqyMNwHc&t=312s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 6 },
+            { title: 'Using too and enough', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=WEx7cx5pljw' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 7 },
+            { title: 'Comparative form', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=wZWi5DLi1Mc' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 8 },
+            { title: 'Expressing purpose', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=16DrNprmkrc&t=31s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 9 },
+            { title: 'Adverbs of frequency', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=sNEuYYcT61U&t=89s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 10 },
+            { title: 'Expressing and seeking advice', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=-3Uz2gae9Os&t=119s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 11 },
+            { title: 'Used to and didn\'t use to', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=D_mfEkPA2s4&t=345s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 12 },
+            { title: 'Present perfect', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=E_NmFgcWdeE&t=41s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 13 },
+            { title: 'The past simple', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=VdE-mKLHtpA' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 14 },
+            { title: 'Pronouns in English', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=ZAtVkfcWWRQ&t=724s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 15 },
+            { title: 'The present simple', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=qkXB2HkB8lo&t=931s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 16 },
+            { title: 'Expressing wishes', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=prbEP8JVL0c' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 17 },
+            { title: 'Conditional sentence', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=1xPoZx-jopY&t=1633s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 18 },
+            { title: 'The passive voice', metadata: { teacher: 'Mohamed Fettah', videoLink: 'https://www.youtube.com/watch?v=PpaUB8rBt-4&t=9s' }, body: 'Subject: english\nTeacher: Mohamed Fettah', order: 19 }
         ];
     } else if (subject === 'maths') {
         return [
-            { title: 'Limits and Continuity', cards: [{ title: 'Limits and Continuity', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Derivation and Study of Functions', cards: [{ title: 'Derivation and Study of Functions', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Mean Value Theorem (MVT)', cards: [{ title: 'Mean Value Theorem (MVT)', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Numerical Sequences', cards: [{ title: 'Numerical Sequences', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Logarithmic Functions', cards: [{ title: 'Logarithmic Functions', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Exponential Functions', cards: [{ title: 'Exponential Functions', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Differential Equations', cards: [{ title: 'Differential Equations', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Complex Numbers (Part 1)', cards: [{ title: 'Complex Numbers (Part 1)', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Primitive Functions and Integral Calculus', cards: [{ title: 'Primitive Functions and Integral Calculus', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Complex Numbers (Part 2)', cards: [{ title: 'Complex Numbers (Part 2)', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Arithmetic', cards: [{ title: 'Arithmetic', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Algebraic Structures', cards: [{ title: 'Algebraic Structures', teacher: 'Teacher A', link: '#' }] },
-            { title: 'Probabilities', cards: [{ title: 'Probabilities', teacher: 'Teacher A', link: '#' }] }
+            { title: 'Limits and Continuity', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 0 },
+            { title: 'Derivation and Study of Functions', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 1 },
+            { title: 'Mean Value Theorem (MVT)', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 2 },
+            { title: 'Numerical Sequences', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 3 },
+            { title: 'Logarithmic Functions', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 4 },
+            { title: 'Exponential Functions', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 5 },
+            { title: 'Differential Equations', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 6 },
+            { title: 'Complex Numbers (Part 1)', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 7 },
+            { title: 'Primitive Functions and Integral Calculus', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 8 },
+            { title: 'Complex Numbers (Part 2)', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 9 },
+            { title: 'Arithmetic', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 10 },
+            { title: 'Algebraic Structures', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 11 },
+            { title: 'Probabilities', metadata: { teacher: 'Teacher A', videoLink: '#' }, body: 'Subject: maths\nTeacher: Teacher A', order: 12 }
         ];
     } else if (subject === 'physics') {
         return [
-            { title: 'Progressive Mechanical Waves', cards: [{ title: 'Progressive Mechanical Waves', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Periodic Progressive Mechanical Waves', cards: [{ title: 'Periodic Progressive Mechanical Waves', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Propagation of Light Waves', cards: [{ title: 'Propagation of Light Waves', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Radioactive Decay', cards: [{ title: 'Radioactive Decay', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Nuclei, Mass, and Energy', cards: [{ title: 'Nuclei, Mass, and Energy', teacher: 'Teacher B', link: '#' }] },
-            { title: 'RC Circuit', cards: [{ title: 'RC Circuit', teacher: 'Teacher B', link: '#' }] },
-            { title: 'RL Circuit', cards: [{ title: 'RL Circuit', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Free Oscillations of an RLC Series Circuit', cards: [{ title: 'Free Oscillations of an RLC Series Circuit', teacher: 'Teacher B', link: '#' }] },
-            { title: 'RLC Series Circuit in Forced Sinusoidal Regime', cards: [{ title: 'RLC Series Circuit in Forced Sinusoidal Regime', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Electromagnetic Waves', cards: [{ title: 'Electromagnetic Waves', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Amplitude Modulation', cards: [{ title: 'Amplitude Modulation', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Slow and Fast Transformations', cards: [{ title: 'Slow and Fast Transformations', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Temporal Monitoring of a Chemical Transformation - Reaction Rate', cards: [{ title: 'Temporal Monitoring of a Chemical Transformation - Reaction Rate', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Chemical Transformations Occurring in Both Directions', cards: [{ title: 'Chemical Transformations Occurring in Both Directions', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Equilibrium State of a Chemical System', cards: [{ title: 'Equilibrium State of a Chemical System', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Transformations Related to Acid-Base Reactions', cards: [{ title: 'Transformations Related to Acid-Base Reactions', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Acid-Base Titration', cards: [{ title: 'Acid-Base Titration', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Newton\'s Laws', cards: [{ title: 'Newton\'s Laws', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Vertical Free Fall of a Solid', cards: [{ title: 'Vertical Free Fall of a Solid', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Planar Movements', cards: [{ title: 'Planar Movements', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Movement of Satellites and Planets', cards: [{ title: 'Movement of Satellites and Planets', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Rotational Motion of a Solid Around a Fixed Axis', cards: [{ title: 'Rotational Motion of a Solid Around a Fixed Axis', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Mechanical Oscillating Systems', cards: [{ title: 'Mechanical Oscillating Systems', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Energy Aspects of Mechanical Oscillations', cards: [{ title: 'Energy Aspects of Mechanical Oscillations', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Atom and Newtonian Mechanics', cards: [{ title: 'Atom and Newtonian Mechanics', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Spontaneous Evolution of a Chemical System', cards: [{ title: 'Spontaneous Evolution of a Chemical System', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Spontaneous Transformations in Batteries and Energy Production', cards: [{ title: 'Spontaneous Transformations in Batteries and Energy Production', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Forced Transformations (Electrolysis)', cards: [{ title: 'Forced Transformations (Electrolysis)', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Esterification and Hydrolysis Reactions', cards: [{ title: 'Esterification and Hydrolysis Reactions', teacher: 'Teacher B', link: '#' }] },
-            { title: 'Controlling the Evolution of a Chemical System', cards: [{ title: 'Controlling the Evolution of a Chemical System', teacher: 'Teacher B', link: '#' }] }
+            { title: 'Progressive Mechanical Waves', metadata: { teacher: 'Teacher B', videoLink: '#' }, body: 'Subject: physics\nTeacher: Teacher B', order: 0 },
+            { title: 'Periodic Progressive Mechanical Waves', metadata: { teacher: 'Teacher B', videoLink: '#' }, body: 'Subject: physics\nTeacher: Teacher B', order: 1 },
+            { title: 'Propagation of Light Waves', metadata: { teacher: 'Teacher B', videoLink: '#' }, body: 'Subject: physics\nTeacher: Teacher B', order: 2 },
+            { title: 'Radioactive Decay', metadata: { teacher: 'Teacher B', videoLink: '#' }, body: 'Subject: physics\nTeacher: Teacher B', order: 3 },
+            { title: 'Nuclei, Mass, and Energy', metadata: { teacher: 'Teacher B', videoLink: '#' }, body: 'Subject: physics\nTeacher: Teacher B', order: 4 }
         ];
     } else if (subject === 'engineering') {
         return [
-            { title: 'Module 1: Functional Analysis', cards: [
-                { title: 'Functional Analysis: General Introduction', teacher: 'Teacher C', link: '#' },
-                { title: 'Functional Analysis: Industrial Enterprise', teacher: 'Teacher C', link: '#' },
-                { title: 'Functional Analysis: External Functional Analysis', teacher: 'Teacher C', link: '#' },
-                { title: 'Functional Analysis: Internal Functional Analysis', teacher: 'Teacher C', link: '#' },
-                { title: 'Functional Analysis: Functional Chain', teacher: '@sciences-ingenieur0 (on youtube)', link: 'https://www.youtube.com/watch?v=iOrObZl6X5w' },
-            ]},
-            { title: 'Module 2: Energy Chain', cards: [
-                { title: 'Energy Chain: Function Supply', teacher: 'Teacher C', link: '#' },
-                { title: 'Energy Chain: Function Distribute', teacher: 'Teacher C', link: '#' },
-                { title: 'Energy Chain: Function Convert', teacher: 'Teacher C', link: '#' },
-                { title: 'Energy Chain: Function Transmit', teacher: 'Teacher C', link: '#' },
-            ]},
-            { title: 'Module 3: Information Chain', cards: [
-                { title: 'Information Chain: Technical Drawing', teacher: 'Teacher C', link: '#' },
-                { title: 'Information Chain: Orthogonal Projection', teacher: 'Teacher C', link: '#' },
-                { title: 'Information Chain: Cuts and Sections', teacher: 'Teacher C', link: '#' },
-                { title: 'Information Chain: View Correspondence', teacher: 'Teacher C', link: '#' },
-                { title: 'Information Chain: Threading and Tapping', teacher: 'Teacher C', link: '#' }
-            ]}
+            { title: 'Functional Analysis: General Introduction', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 0 },
+            { title: 'Functional Analysis: Industrial Enterprise', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 1 },
+            { title: 'Functional Analysis: External Functional Analysis', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 2 },
+            { title: 'Functional Analysis: Internal Functional Analysis', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 3 },
+            { title: 'Functional Analysis: Functional Chain', metadata: { teacher: '@sciences-ingenieur0 (on youtube)', videoLink: 'https://www.youtube.com/watch?v=iOrObZl6X5w' }, body: 'Subject: engineering\nTeacher: @sciences-ingenieur0 (on youtube)', order: 4 },
+            { title: 'Energy Chain: Function Supply', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 5 },
+            { title: 'Energy Chain: Function Distribute', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 6 },
+            { title: 'Energy Chain: Function Convert', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 7 },
+            { title: 'Energy Chain: Function Transmit', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 8 },
+            { title: 'Information Chain: Technical Drawing', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 9 },
+            { title: 'Information Chain: Orthogonal Projection', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 10 },
+            { title: 'Information Chain: Cuts and Sections', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 11 },
+            { title: 'Information Chain: View Correspondence', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 12 },
+            { title: 'Information Chain: Threading and Tapping', metadata: { teacher: 'Teacher C', videoLink: '#' }, body: 'Subject: engineering\nTeacher: Teacher C', order: 13 }
         ];
     } else if (subject === 'biology') {
         return [
-            { title: 'Transfer of Genetic Information During Sexual Reproduction - Human Genetics', cards: [{ title: 'Transfer of Genetic Information During Sexual Reproduction - Human Genetics', teacher: 'Teacher D', link: '#' }] },
-            { title: 'Variation and Population Genetics', cards: [{ title: 'Variation and Population Genetics', teacher: 'Teacher D', link: '#' }] }
+            { title: 'Transfer of Genetic Information During Sexual Reproduction - Human Genetics', metadata: { teacher: 'Teacher D', videoLink: '#' }, body: 'Subject: biology\nTeacher: Teacher D', order: 0 },
+            { title: 'Variation and Population Genetics', metadata: { teacher: 'Teacher D', videoLink: '#' }, body: 'Subject: biology\nTeacher: Teacher D', order: 1 }
         ];
     }
-    // Add more subjects and lessons as needed
+    
+    // Return empty array for subjects without lessons
     return [];
 }
 

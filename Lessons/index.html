@@ -59,23 +59,301 @@
 
     <!-- Main Content -->
     <div class="container mt-5" style="width: auto; padding-right: 30vh;">
-        <h1 class="text-center mb-4">Lessons</h1>
-        <div id="subject-buttons" class="d-flex justify-content-center mb-4" style="height: 20vh; align-items: center; gap: 1rem; flex-wrap: wrap;">
-            <button class="btn btn-primary subject-btn" data-subject="maths">Maths</button>
-            <button class="btn btn-primary subject-btn" data-subject="physics">Physics</button>
-            <button class="btn btn-primary subject-btn" data-subject="engineering">Engineering</button>
-            <button class="btn btn-primary subject-btn" data-subject="biology">Biology</button>
-            <button class="btn btn-primary subject-btn" data-subject="english">English</button>
-            <button class="btn btn-primary subject-btn" data-subject="french">French</button>
-            <button class="btn btn-primary subject-btn" data-subject="arabic">Arabic</button>
-            <button class="btn btn-primary subject-btn" data-subject="philosophy">Philosophy</button>
-            <button class="btn btn-primary subject-btn" data-subject="islamic-education">Islamic Education</button>
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-center mb-4" id="page-title">Lessons</h1>
+                
+                <!-- Language-specific title for Arabic -->
+                <h1 class="text-center mb-4" id="page-title-arabic" style="display: none;">الدروس</h1>
+                
+                <!-- Connection Status Indicator -->
+                <div id="connection-status" class="alert alert-info text-center" style="display: none;">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Connecting to lesson database...</span>
+                </div>
+                
+                <!-- Offline Indicator -->
+                <div id="offline-indicator" class="alert alert-warning text-center" style="display: none;">
+                    <strong>Offline Mode:</strong> Showing cached lessons. Some content may not be up to date.
+                </div>
+                
+                <div id="subject-buttons" class="d-flex justify-content-center mb-4" style="height: 20vh; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary subject-btn" data-subject="maths">Maths</button>
+                    <button class="btn btn-primary subject-btn" data-subject="physics">Physics</button>
+                    <button class="btn btn-primary subject-btn" data-subject="engineering">Engineering</button>
+                    <button class="btn btn-primary subject-btn" data-subject="biology">Biology</button>
+                    <button class="btn btn-primary subject-btn" data-subject="english">English</button>
+                    <button class="btn btn-primary subject-btn" data-subject="french">French</button>
+                    <button class="btn btn-primary subject-btn" data-subject="arabic">Arabic</button>
+                    <button class="btn btn-primary subject-btn" data-subject="philosophy">Philosophy</button>
+                    <button class="btn btn-primary subject-btn" data-subject="islamic-education">Islamic Education</button>
+                </div>
+
+                <!-- Search and Filter Options -->
+                <div class="row mb-3" id="search-filter-section" style="display: none;">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="lesson-search" placeholder="Search lessons...">
+                            <button class="btn btn-outline-secondary" type="button" id="search-btn">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="teacher-filter">
+                            <option value="">All Teachers</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="sort-options">
+                            <option value="order">Default Order</option>
+                            <option value="title">Alphabetical</option>
+                            <option value="teacher">By Teacher</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Back Button (shown when viewing lessons) -->
+                <div class="text-center mb-3" id="back-button-section" style="display: none;">
+                    <button class="btn btn-secondary" onclick="goBack()">
+                        <i class="bi bi-arrow-left"></i> <span id="back-text">Back to Subjects</span>
+                    </button>
+                    <div class="mt-2">
+                        <small class="text-muted" id="lesson-count-display"></small>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Cards Container -->
         <div id="cards-container" class="list-group" style="display: none;">
             <!-- Dynamically loaded cards -->
         </div>
+
+        <!-- No Lessons Found -->
+        <div id="no-lessons-message" class="text-center p-5" style="display: none;">
+            <div class="mb-3">
+                <svg width="64" height="64" fill="currentColor" class="text-muted" viewBox="0 0 16 16">
+                    <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z"/>
+                    <path d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z"/>
+                </svg>
+            </div>
+            <h4 class="text-muted">No Lessons Available</h4>
+            <p class="text-muted" id="no-lessons-text">No lessons have been added for this subject yet.</p>
+            <button class="btn btn-primary" onclick="goBack()">Choose Another Subject</button>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="alert alert-danger text-center" style="display: none;">
+            <h5>Unable to Load Lessons</h5>
+            <p id="error-text">There was an error loading the lessons. Please check your internet connection and try again.</p>
+            <div class="mt-3">
+                <button class="btn btn-danger" id="retry-btn">Retry</button>
+                <button class="btn btn-outline-secondary" onclick="goBack()">Go Back</button>
+            </div>
+        </div>
+
+        <!-- Admin Notice (for logged in admins) -->
+        <div id="admin-notice" class="alert alert-info" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Admin Notice:</strong> Lessons are currently showing from fallback data. 
+                    <a href="/admin/dashboard" target="_blank">Manage lessons in admin panel</a>
+                </div>
+                <button type="button" class="btn-close" id="close-admin-notice"></button>
+            </div>
+        </div>
     </div>
+
+    <!-- Add some additional scripts for enhanced functionality -->
+    <script>
+        // Enhanced functionality for the lessons page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is admin and show notice if using fallback data
+            checkAdminStatus();
+            
+            // Setup search functionality
+            setupSearchAndFilter();
+            
+            // Setup connection status monitoring
+            monitorConnection();
+        });
+
+        function checkAdminStatus() {
+            // Check if user has admin token
+            const adminToken = localStorage.getItem('authToken');
+            if (adminToken) {
+                // Show admin notice after a delay to see if API loads
+                setTimeout(() => {
+                    const adminNotice = document.getElementById('admin-notice');
+                    if (adminNotice && isUsingFallbackData()) {
+                        adminNotice.style.display = 'block';
+                    }
+                }, 2000);
+            }
+            
+            // Setup close button for admin notice
+            const closeBtn = document.getElementById('close-admin-notice');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    document.getElementById('admin-notice').style.display = 'none';
+                });
+            }
+        }
+
+        function isUsingFallbackData() {
+            // This would be set by the lessons.js when it falls back to hardcoded data
+            return window.usingFallbackData === true;
+        }
+
+        function setupSearchAndFilter() {
+            const searchInput = document.getElementById('lesson-search');
+            const searchBtn = document.getElementById('search-btn');
+            const teacherFilter = document.getElementById('teacher-filter');
+            const sortOptions = document.getElementById('sort-options');
+
+            if (searchInput && searchBtn) {
+                searchBtn.addEventListener('click', performSearch);
+                searchInput.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') {
+                        performSearch();
+                    }
+                });
+            }
+
+            if (teacherFilter) {
+                teacherFilter.addEventListener('change', applyFilters);
+            }
+
+            if (sortOptions) {
+                sortOptions.addEventListener('change', applySorting);
+            }
+        }
+
+        function performSearch() {
+            const query = document.getElementById('lesson-search').value.toLowerCase();
+            const cards = document.querySelectorAll('#cards-container .list-group-item');
+            
+            cards.forEach(card => {
+                const title = card.querySelector('h5').textContent.toLowerCase();
+                const content = card.textContent.toLowerCase();
+                
+                if (title.includes(query) || content.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            updateLessonCount();
+        }
+
+        function applyFilters() {
+            const teacherFilter = document.getElementById('teacher-filter').value;
+            const cards = document.querySelectorAll('#cards-container .list-group-item');
+            
+            cards.forEach(card => {
+                const teacherText = card.querySelector('p').textContent;
+                
+                if (!teacherFilter || teacherText.includes(teacherFilter)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            updateLessonCount();
+        }
+
+        function applySorting() {
+            const sortBy = document.getElementById('sort-options').value;
+            const container = document.getElementById('cards-container');
+            const cards = Array.from(container.querySelectorAll('.list-group-item'));
+            
+            cards.sort((a, b) => {
+                switch (sortBy) {
+                    case 'title':
+                        return a.querySelector('h5').textContent.localeCompare(b.querySelector('h5').textContent);
+                    case 'teacher':
+                        return a.querySelector('p').textContent.localeCompare(b.querySelector('p').textContent);
+                    default:
+                        return 0; // Keep original order
+                }
+            });
+            
+            // Re-append sorted cards
+            cards.forEach(card => container.appendChild(card));
+        }
+
+        function updateLessonCount() {
+            const visibleCards = document.querySelectorAll('#cards-container .list-group-item[style*="block"], #cards-container .list-group-item:not([style*="none"])');
+            const totalCards = document.querySelectorAll('#cards-container .list-group-item');
+            const countDisplay = document.getElementById('lesson-count-display');
+            
+            if (countDisplay) {
+                if (visibleCards.length === totalCards.length) {
+                    countDisplay.textContent = `Showing ${totalCards.length} lessons`;
+                } else {
+                    countDisplay.textContent = `Showing ${visibleCards.length} of ${totalCards.length} lessons`;
+                }
+            }
+        }
+
+        function monitorConnection() {
+            const statusIndicator = document.getElementById('connection-status');
+            const offlineIndicator = document.getElementById('offline-indicator');
+            
+            // Show connection status when loading
+            window.addEventListener('lessonLoadStart', () => {
+                if (statusIndicator) statusIndicator.style.display = 'block';
+                if (offlineIndicator) offlineIndicator.style.display = 'none';
+            });
+            
+            // Hide connection status when loaded
+            window.addEventListener('lessonLoadComplete', () => {
+                if (statusIndicator) statusIndicator.style.display = 'none';
+            });
+            
+            // Show offline indicator when using fallback
+            window.addEventListener('usingFallbackData', () => {
+                if (statusIndicator) statusIndicator.style.display = 'none';
+                if (offlineIndicator) offlineIndicator.style.display = 'block';
+            });
+        }
+
+        // Enhanced goBack function
+        function goBack() {
+            const cardsContainer = document.getElementById('cards-container');
+            const subjectButtons = document.getElementById('subject-buttons');
+            const searchFilterSection = document.getElementById('search-filter-section');
+            const backButtonSection = document.getElementById('back-button-section');
+            const noLessonsMessage = document.getElementById('no-lessons-message');
+            const errorMessage = document.getElementById('error-message');
+            
+            if (cardsContainer.style.display === 'block') {
+                // Going back to subject selection
+                cardsContainer.style.display = 'none';
+                subjectButtons.style.display = 'flex';
+                
+                if (searchFilterSection) searchFilterSection.style.display = 'none';
+                if (backButtonSection) backButtonSection.style.display = 'none';
+                if (noLessonsMessage) noLessonsMessage.style.display = 'none';
+                if (errorMessage) errorMessage.style.display = 'none';
+                
+                // Clear search
+                const searchInput = document.getElementById('lesson-search');
+                if (searchInput) searchInput.value = '';
+                
+                // Reset filters
+                const teacherFilter = document.getElementById('teacher-filter');
+                const sortOptions = document.getElementById('sort-options');
+                if (teacherFilter) teacherFilter.value = '';
+                if (sortOptions) sortOptions.value = 'order';
+            } else {
+                // Going back to previous page
+                window.history.back();
+            }
+        }
+    </script>
 </body>
 </html>
