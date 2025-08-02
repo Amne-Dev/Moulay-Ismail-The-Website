@@ -1,8 +1,8 @@
 const { MongoClient } = require('mongodb');
 
 // You'll need to replace this with your actual MongoDB URI
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority';
-const DB_NAME = 'moulay_ismail_school';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://aboumazoued:SxSYr89savY2WqUi@mis-uno.rnkycky.mongodb.net/?retryWrites=true&w=majority&appName=MIS-UNO';
+const DB_NAME = 'moulay_ismail';
 
 // Your lesson data (copied from lessons.js)
 const lessonsData = {
